@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -33,42 +34,60 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun TestList() {
         val revealState = rememberRevealState(confirmStateChange = {
-            false
+            true
         })
-        val buttons = remember {
-            setOf(
-                RevealButton(
-                    direction = RevealDirection.StartToEnd,
-                    icon = Icons.Rounded.Favorite,
-                    doOnReveal = {
-
-                    }
-                )
+        val button = remember {
+            RevealButton(
+                icon = Icons.Rounded.Favorite
             )
         }
+
+
+
         Column(Modifier.fillMaxWidth()) {
             SwipeToReveal(
                 state = revealState,
                 modifier = Modifier.fillMaxWidth(),
-                buttons = buttons
+                startButton = button
             ) {
                 Card {
                     ListItem(
                         overlineText = {
-                                       Text(text = "${revealState.offset.value}")
+                            Text(text = "${revealState.offset.value}")
                         },
                         secondaryText = {
-                            Text(text = " ${revealState.isRevealed(
-                                    RevealDirection.StartToEnd)}")
+                            Text(
+                                text = " ${
+                                    revealState.isRevealed(
+                                        RevealDirection.StartToEnd
+                                    )
+                                }"
+                            )
                         },
                         text = {
-                        Text(
-                            text = "${revealState.currentValue}"
-                        )
-                    })
+                            Text(
+                                text = "${revealState.currentValue}"
+                            )
+                        })
                 }
             }
         }
+
+
+        LaunchedEffect(key1 = revealState.currentValue) {
+
+            when (revealState.currentValue) {
+                RevealValue.CommitedToEnd, RevealValue.CommitedToStart -> {
+                    revealState.reset()
+                }
+                else -> {
+                    //do nothing
+                }
+            }
+
+        }
+
+
     }
 }
 

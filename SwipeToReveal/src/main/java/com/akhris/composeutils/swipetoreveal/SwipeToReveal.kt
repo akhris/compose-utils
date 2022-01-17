@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.akhris.composeutils.swipetoreveal.RevealValue.*
 import kotlinx.coroutines.CancellationException
 import timber.log.Timber
 import kotlin.math.abs
@@ -60,7 +61,17 @@ enum class RevealValue {
     /**
      * Indicates the component has been revealed in the reverse of the reading direction.
      */
-    RevealedToStart
+    RevealedToStart,
+
+    /**
+     * Indicates the component has been revealed completely and pushed a bit further to fire button's action
+     */
+    CommitedToEnd,
+
+    /**
+     * Indicates the component has been revealed completely and pushed a bit further to fire button's action
+     */
+    CommitedToStart
 }
 
 
@@ -90,7 +101,7 @@ class RevealState(
      * @param direction The reveal direction.
      */
     fun isRevealed(direction: RevealDirection): Boolean {
-        return currentValue == if (direction == RevealDirection.StartToEnd) RevealValue.RevealedToEnd else RevealValue.RevealedToStart
+        return currentValue == if (direction == RevealDirection.StartToEnd) RevealedToEnd else RevealedToStart
     }
 
     /**
@@ -100,7 +111,7 @@ class RevealState(
      *
      * @return the reason the reset animation ended
      */
-    suspend fun reset() = animateTo(targetValue = RevealValue.Default)
+    suspend fun reset() = animateTo(targetValue = Default)
 
     /**
      * Reveal the component in the given [direction], with an animation and suspend. This method
@@ -110,7 +121,7 @@ class RevealState(
      */
     suspend fun reveal(direction: RevealDirection) {
         val targetValue =
-            if (direction == RevealDirection.StartToEnd) RevealValue.RevealedToEnd else RevealValue.RevealedToStart
+            if (direction == RevealDirection.StartToEnd) RevealedToEnd else RevealedToStart
         animateTo(targetValue = targetValue)
     }
 
@@ -137,7 +148,7 @@ class RevealState(
 @Composable
 @ExperimentalMaterialApi
 fun rememberRevealState(
-    initialValue: RevealValue = RevealValue.Default,
+    initialValue: RevealValue = Default,
     confirmStateChange: (RevealValue) -> Boolean = { true }
 ): RevealState {
     return rememberSaveable(saver = RevealState.Saver(confirmStateChange)) {
@@ -163,9 +174,10 @@ fun rememberRevealState(
 fun SwipeToReveal(
     modifier: Modifier = Modifier,
     state: RevealState = rememberRevealState(),
-    buttons: Set<RevealButton> = setOf(),
+    startButton: RevealButton? = null,
+    endButton: RevealButton? = null,
     revealContent: @Composable BoxScope.() -> Unit
-) = BoxWithConstraints {
+) = BoxWithConstraints(modifier) {
 
 //    val state = rememberRevealState { value ->
 //        when (value) {
@@ -181,23 +193,24 @@ fun SwipeToReveal(
 //        false
 //    }
 
-    val startButtons = remember { buttons.filter { it.direction == RevealDirection.StartToEnd } }
-    val endButtons = remember { buttons.filter { it.direction == RevealDirection.EndToStart } }
 
-    val directions = remember { buttons.map { it.direction }.toSet() }
+    val directions = remember(startButton, endButton) {
+        val dirs = mutableListOf<RevealDirection>()
+        startButton?.let { dirs.add(RevealDirection.StartToEnd) }
+        endButton?.let { dirs.add(RevealDirection.EndToStart) }
+        dirs.toList()
+    }
 
     //width of the composable
     val width = remember { constraints.maxWidth.toFloat() }
-    var heightPx by remember { mutableStateOf(24f) }
-    var height = with(LocalDensity.current){
-        heightPx.dp.toPx()
-    }
+    var height by remember { mutableStateOf(24f) }
+
 
     //max revealing width
     val revealWidthStartToEnd =
-        remember(height) { startButtons.fold(0f) { acc, button -> acc + (button.width ?: height) } }
+        remember(height, startButton) { startButton?.width ?: height }
     val revealWidthEndToStart =
-        remember(height) { endButtons.fold(0f) { acc, button -> acc + (button.width ?: height) } }
+        remember(height, endButton) { endButton?.width ?: height }
 
     Timber.d("revealWidthStartToEnd: $revealWidthStartToEnd")
     Timber.d("revealWidthEndToStart: $revealWidthEndToStart")
@@ -208,14 +221,24 @@ fun SwipeToReveal(
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
     val anchors = remember(height) {
-        val map = mutableMapOf(0f to RevealValue.Default)
-        if (RevealDirection.StartToEnd in directions) map += revealWidthStartToEnd to RevealValue.RevealedToEnd
-        if (RevealDirection.EndToStart in directions) map += -revealWidthEndToStart to RevealValue.RevealedToStart
+        val map = mutableMapOf(0f to Default)
+        if (RevealDirection.StartToEnd in directions) {
+            map += revealWidthStartToEnd to RevealedToEnd
+            map += revealWidthStartToEnd * 1.5f to CommitedToEnd
+        }
+        if (RevealDirection.EndToStart in directions) {
+            map += -revealWidthEndToStart to RevealedToStart
+            map += -revealWidthEndToStart * 1.5f to CommitedToStart
+        }
+
+        Timber.d("anchors: $map")
         map
     }
 
     val thresholds = { from: RevealValue, to: RevealValue ->
-        revealThresholds(getRevealDirection(from, to)!!)
+        val dir = getRevealDirection(from, to)
+        Timber.d("$from - $to -> $dir")
+        revealThresholds(dir!!)
     }
 
     val minFactor =
@@ -229,7 +252,7 @@ fun SwipeToReveal(
             anchors = anchors,
             thresholds = thresholds,
             orientation = Orientation.Horizontal,
-            enabled = state.currentValue == RevealValue.Default,
+            enabled = state.currentValue == Default,
             reverseDirection = isRtl,
             resistance = ResistanceConfig(
                 basis = width,
@@ -240,11 +263,10 @@ fun SwipeToReveal(
     ) {
 
         Row {
-            startButtons
-                .forEach {
+            startButton?.let {
 
-                    val horPadding = 16.dp
-                    val scale = 1f
+                val horPadding = 16.dp
+                val scale = 1f
 //                val scale = if (state.isAnimationRunning) 1f else when (abs(state.offset.value)) {
 //                    in 0f..with(LocalDensity.current) { horPadding.toPx() } -> 1f
 //                    in revealWidth..width -> 1f
@@ -253,24 +275,24 @@ fun SwipeToReveal(
 
 //                    val alignment =
 //                        if (it.direction == RevealDirection.EndToStart) Alignment.CenterEnd else Alignment.CenterStart
-                    Icon(
-                        it.icon,
-                        contentDescription = it.contentDescription,
-                        Modifier
-                            .background(color = it.backgroundColor)
-                            .size(max(height, it.width ?: height).dp)
-                            .padding(horizontal = horPadding, vertical = 0.dp)
-                            .scale(scale)
-                            .align(Alignment.CenterVertically),
-                        tint = it.iconTint
-                            ?: LocalContentColor.current.copy(alpha = LocalContentAlpha.current)
-                    )
+                Icon(
+                    it.icon,
+                    contentDescription = it.contentDescription,
+                    Modifier
+                        .background(color = it.backgroundColor)
+                        .size(max(height, it.width ?: height).dp)
+                        .padding(horizontal = horPadding, vertical = 0.dp)
+                        .scale(scale)
+                        .align(Alignment.CenterVertically),
+                    tint = it.iconTint
+                        ?: LocalContentColor.current.copy(alpha = LocalContentAlpha.current)
+                )
 
 
-                }
+            }
 
             Spacer(modifier = Modifier.weight(1f))
-            endButtons.forEach {
+            endButton?.let {
 
                 val horPadding = 16.dp
                 val scale = 1f
@@ -299,9 +321,7 @@ fun SwipeToReveal(
             modifier = Modifier
                 .offset { IntOffset(state.offset.value.roundToInt(), 0) }
                 .onSizeChanged { size ->
-                    Timber.d("onSizeChanged: $size")
-                    height =
-                        size.height
+                    height = size.height.toFloat()
                 },
             content = revealContent
         )
@@ -310,31 +330,31 @@ fun SwipeToReveal(
 }
 
 class RevealButton(
-    val direction: RevealDirection,
     val icon: ImageVector,
     val iconTint: Color? = null,
     val backgroundColor: Color = Color.Transparent,
     val width: Float? = null,
-    val doOnReveal: () -> Unit,
     val contentDescription: String? = null
 )
 
 private fun getRevealDirection(from: RevealValue, to: RevealValue): RevealDirection? {
     return when {
         // settled at the default state
-        from == to && from == RevealValue.Default -> null
+        from == to && from == Default -> null
         // has been dismissed to the end
-        from == to && from == RevealValue.RevealedToEnd -> RevealDirection.StartToEnd
+        from == to && from == RevealedToEnd -> RevealDirection.StartToEnd
         // has been dismissed to the start
-        from == to && from == RevealValue.RevealedToStart -> RevealDirection.EndToStart
+        from == to && from == RevealedToStart -> RevealDirection.EndToStart
         // is currently being dismissed to the end
-        from == RevealValue.Default && to == RevealValue.RevealedToEnd -> RevealDirection.StartToEnd
+        from == Default && to == RevealedToEnd -> RevealDirection.StartToEnd
         // is currently being dismissed to the start
-        from == RevealValue.Default && to == RevealValue.RevealedToStart -> RevealDirection.EndToStart
+        from == Default && to == RevealedToStart -> RevealDirection.EndToStart
         // has been dismissed to the end but is now animated back to default
-        from == RevealValue.RevealedToEnd && to == RevealValue.Default -> RevealDirection.StartToEnd
+        from == RevealedToEnd && to == Default -> RevealDirection.StartToEnd
         // has been dismissed to the start but is now animated back to default
-        from == RevealValue.RevealedToStart && to == RevealValue.Default -> RevealDirection.EndToStart
+        from == RevealedToStart && to == Default -> RevealDirection.EndToStart
+        to == CommitedToEnd -> RevealDirection.StartToEnd
+        to == CommitedToStart -> RevealDirection.EndToStart
         else -> null
     }
 }
