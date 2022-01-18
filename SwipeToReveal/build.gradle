@@ -51,8 +51,8 @@ afterEvaluate {
                 from components.release
 
                 // You can then customize attributes of the publication as shown below.
-                groupId = 'com.github.akhris.composeutils.swipetoreveal'
-                artifactId = 'final'
+                groupId = 'com.github.akhris.composeutils'
+                artifactId = 'swipetoreveal'
                 version = version_name
             }
             // Creates a Maven publication called “debug”.
@@ -61,7 +61,7 @@ afterEvaluate {
                 from components.debug
 
                 groupId = 'com.github.akhris.composeutils.swipetoreveal'
-                artifactId = 'final-debug'
+                artifactId = 'swipetoreveal-debug'
                 version = version_name
             }
         }
