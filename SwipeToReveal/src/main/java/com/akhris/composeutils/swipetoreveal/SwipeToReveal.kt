@@ -1,6 +1,7 @@
 package com.akhris.composeutils.swipetoreveal
 
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
@@ -13,10 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -24,8 +24,8 @@ import com.akhris.composeutils.swipetoreveal.RevealValue.*
 import kotlinx.coroutines.CancellationException
 import timber.log.Timber
 import kotlin.math.abs
-import kotlin.math.max
 import kotlin.math.roundToInt
+
 
 
 /**
@@ -86,6 +86,13 @@ class RevealState(
     initialValue: RevealValue,
     confirmStateChange: (RevealValue) -> Boolean = { true }
 ) : SwipeableState<RevealValue>(initialValue, confirmStateChange = confirmStateChange) {
+
+    private val peekAnimationSpec =
+        SpringSpec<Float>(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        )
+
     /**
      * The direction (if any) in which the composable has been or is being revealed.
      *
@@ -125,6 +132,21 @@ class RevealState(
         animateTo(targetValue = targetValue)
     }
 
+    /**
+     * Reveal the component in the given [direction] with an animation given by [animationSpec]
+     * without triggering the button's action and swipe back programmatically.
+     * Use it in help purposes to show user that this item can be swiped.
+     */
+    suspend fun peek(
+        direction: RevealDirection,
+        animationSpec: AnimationSpec<Float> = peekAnimationSpec
+    ) {
+        val targetValue =
+            if (direction == RevealDirection.StartToEnd) RevealedToEnd else RevealedToStart
+        animateTo(targetValue = targetValue, anim = animationSpec)
+        animateTo(targetValue = Default, anim = animationSpec)
+    }
+
     companion object {
         /**
          * The default [Saver] implementation for [RevealState].
@@ -157,17 +179,13 @@ fun rememberRevealState(
 }
 
 /**
- * A composable that can be dismissed by swiping left or right.
- *
- * @sample androidx.compose.material.samples.SwipeToDismissListItems
+ * A composable that can be revealed by swiping left or right.
  *
  * @param state The state of this component.
  * @param modifier Optional [Modifier] for this component.
- * @param directions The set of directions in which the component can be dismissed.
- * @param revealThresholds The thresholds the item needs to be swiped in order to be dismissed.
- * @param background A composable that is stacked behind the content and is exposed when the
- * content is swiped. You can/should use the [state] to have different backgrounds on each side.
  * @param revealContent The content that can be dismissed.
+ * @param startButton - button at the start (left) position
+ * @param endButton - button at the end (right) position
  */
 @Composable
 @ExperimentalMaterialApi
@@ -179,20 +197,6 @@ fun SwipeToReveal(
     revealContent: @Composable BoxScope.() -> Unit
 ) = BoxWithConstraints(modifier) {
 
-//    val state = rememberRevealState { value ->
-//        when (value) {
-//            RevealValue.RevealedToEnd -> {
-//                buttons.find { it.direction == RevealDirection.StartToEnd }?.doOnReveal?.invoke()
-//            }
-//            RevealValue.RevealedToStart -> {
-//                buttons.find { it.direction == RevealDirection.EndToStart }?.doOnReveal?.invoke()
-//            }
-//            else -> {
-//            }
-//        }
-//        false
-//    }
-
 
     val directions = remember(startButton, endButton) {
         val dirs = mutableListOf<RevealDirection>()
@@ -201,37 +205,31 @@ fun SwipeToReveal(
         dirs.toList()
     }
 
+    val iconHorPadding = remember { 32.dp }
+    val iconSize = remember { 24.dp }
+
     //width of the composable
     val width = remember { constraints.maxWidth.toFloat() }
-    var height by remember { mutableStateOf(24f) }
-
-
+    val revealWidthDp = remember(iconSize, iconHorPadding) { iconSize + iconHorPadding * 2 }
     //max revealing width
-    val revealWidthStartToEnd =
-        remember(height, startButton) { startButton?.width ?: height }
-    val revealWidthEndToStart =
-        remember(height, endButton) { endButton?.width ?: height }
-
-    Timber.d("revealWidthStartToEnd: $revealWidthStartToEnd")
-    Timber.d("revealWidthEndToStart: $revealWidthEndToStart")
+    val revealWidthPx = with(LocalDensity.current) { revealWidthDp.toPx() }
+    val commitWidth = remember(revealWidthPx) { 1.5f * revealWidthPx }
 
     val revealThresholds: (RevealDirection) -> ThresholdConfig = { FractionalThreshold(0.5f) }
 
 
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
-    val anchors = remember(height) {
+    val anchors = remember(revealWidthPx, commitWidth) {
         val map = mutableMapOf(0f to Default)
         if (RevealDirection.StartToEnd in directions) {
-            map += revealWidthStartToEnd to RevealedToEnd
-            map += revealWidthStartToEnd * 1.5f to CommitedToEnd
+            map += revealWidthPx to RevealedToEnd
+            map += commitWidth to CommitedToEnd
         }
         if (RevealDirection.EndToStart in directions) {
-            map += -revealWidthEndToStart to RevealedToStart
-            map += -revealWidthEndToStart * 1.5f to CommitedToStart
+            map += -revealWidthPx to RevealedToStart
+            map += -commitWidth to CommitedToStart
         }
-
-        Timber.d("anchors: $map")
         map
     }
 
@@ -246,13 +244,16 @@ fun SwipeToReveal(
     val maxFactor =
         if (RevealDirection.StartToEnd in directions) SwipeableDefaults.StandardResistanceFactor else SwipeableDefaults.StiffResistanceFactor
 
+    //reset flag - used when there is need for reset state to Default
+    var isReset by remember { mutableStateOf(false) }
+
     Box(
         Modifier.swipeable(
             state = state,
             anchors = anchors,
             thresholds = thresholds,
             orientation = Orientation.Horizontal,
-            enabled = state.currentValue == Default,
+            enabled = true,
             reverseDirection = isRtl,
             resistance = ResistanceConfig(
                 basis = width,
@@ -261,80 +262,134 @@ fun SwipeToReveal(
             )
         )
     ) {
-
-        Row {
-            startButton?.let {
-
-                val horPadding = 16.dp
-                val scale = 1f
-//                val scale = if (state.isAnimationRunning) 1f else when (abs(state.offset.value)) {
-//                    in 0f..with(LocalDensity.current) { horPadding.toPx() } -> 1f
-//                    in revealWidth..width -> 1f
-//                    else -> 1f + abs(state.offset.value) / (revealWidth * 2f)
-//                }
-
-//                    val alignment =
-//                        if (it.direction == RevealDirection.EndToStart) Alignment.CenterEnd else Alignment.CenterStart
-                Icon(
-                    it.icon,
-                    contentDescription = it.contentDescription,
-                    Modifier
-                        .background(color = it.backgroundColor)
-                        .size(max(height, it.width ?: height).dp)
-                        .padding(horizontal = horPadding, vertical = 0.dp)
-                        .scale(scale)
-                        .align(Alignment.CenterVertically),
-                    tint = it.iconTint
-                        ?: LocalContentColor.current.copy(alpha = LocalContentAlpha.current)
-                )
-
-
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-            endButton?.let {
-
-                val horPadding = 16.dp
-                val scale = 1f
-//                val scale = if (state.isAnimationRunning) 1f else when (abs(state.offset.value)) {
-//                    in 0f..with(LocalDensity.current) { horPadding.toPx() } -> 1f
-//                    in revealWidth..width -> 1f
-//                    else -> 1f + abs(state.offset.value) / (revealWidth * 2f)
-//                }
-
-//                    val alignment =
-//                        if (it.direction == RevealDirection.EndToStart) Alignment.CenterEnd else Alignment.CenterStart
-                Icon(
-                    it.icon,
-                    contentDescription = it.contentDescription,
-                    Modifier
-                        .background(color = it.backgroundColor)
-//                            .align(alignment)
-                        .padding(horizontal = horPadding, vertical = 0.dp)
-                        .scale(scale),
-                    tint = it.iconTint
-                        ?: LocalContentColor.current.copy(alpha = LocalContentAlpha.current)
-                )
-            }
+        val scale = if (state.isAnimationRunning) 1f else when (val curOffset =
+            abs(state.offset.value)) {
+            in 0f..revealWidthPx -> 1f
+            in revealWidthPx..commitWidth -> curOffset / revealWidthPx
+            else -> 1f
         }
+        //background row:
+        Row(modifier = Modifier.matchParentSize()) {
+            startButton?.let { button ->
+                DrawButtonBox(
+                    button,
+                    iconSize = iconSize,
+                    iconHorPadding = iconHorPadding,
+                    scale = scale,
+                    onClick = {
+                        button.callback.invoke()
+                        isReset = true
+                    },
+                    alignment = Alignment.CenterStart
+                )
+
+            }
+
+
+            endButton?.let { button ->
+
+                DrawButtonBox(
+                    button,
+                    iconSize = iconSize,
+                    iconHorPadding = iconHorPadding,
+                    scale = scale,
+                    onClick = {
+                        button.callback.invoke()
+                        isReset = true
+                    },
+                    alignment = Alignment.CenterEnd
+                )
+
+            }
+
+        }
+
         Box(
             modifier = Modifier
+                .wrapContentHeight()
                 .offset { IntOffset(state.offset.value.roundToInt(), 0) }
-                .onSizeChanged { size ->
-                    height = size.height.toFloat()
+                .clickable {
+                    isReset = true
                 },
             content = revealContent
         )
     }
 
+
+
+    LaunchedEffect(key1 = state.currentValue) {
+        when (state.currentValue) {
+            CommitedToEnd -> {
+                startButton?.callback?.invoke()
+                state.reset()
+            }
+            CommitedToStart -> {
+                endButton?.callback?.invoke()
+                state.reset()
+            }
+            else -> {
+                //do nothing
+            }
+        }
+    }
+
+    LaunchedEffect(key1 = isReset) {
+        if (isReset) {
+            state.reset()
+            isReset = false
+        }
+    }
+
+}
+
+
+/**
+ * Draws [Box] with two layers:
+ * - background layer from [RevealButton] object - see [RevealButton.background] for details
+ * - front layer icon from [RevealButton] icon's parameters depending
+ */
+@Composable
+private fun RowScope.DrawButtonBox(
+    button: RevealButton,
+    iconSize: Dp,
+    iconHorPadding: Dp,
+    scale: Float,
+    onClick: () -> Unit,
+    alignment: Alignment,
+) {
+
+    Box(
+        Modifier
+            .fillMaxHeight()
+            .weight(1f)
+    ) {
+
+        button.background.invoke(this)
+
+        Icon(
+            button.icon,
+            contentDescription = button.contentDescription,
+            Modifier
+                .align(alignment = alignment)
+                .padding(horizontal = iconHorPadding, vertical = 0.dp)
+                .size(iconSize)
+                .scale(scale)
+                .clickable {
+                    onClick()
+
+                },
+            tint = button.iconTint
+                ?: LocalContentColor.current.copy(alpha = LocalContentAlpha.current)
+        )
+    }
 }
 
 class RevealButton(
     val icon: ImageVector,
     val iconTint: Color? = null,
-    val backgroundColor: Color = Color.Transparent,
-    val width: Float? = null,
-    val contentDescription: String? = null
+    val background: @Composable BoxScope.() -> Unit = {},
+    val contentDescription: String? = null,
+    val callback: () -> Unit
 )
 
 private fun getRevealDirection(from: RevealValue, to: RevealValue): RevealDirection? {
