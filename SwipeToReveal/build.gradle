@@ -51,7 +51,7 @@ afterEvaluate {
                 from components.release
 
                 // You can then customize attributes of the publication as shown below.
-                groupId = 'com.akhris.composeutils.swipetoreveal'
+                groupId = 'com.github.akhris.composeutils.swipetoreveal'
                 artifactId = 'final'
                 version = version_name
             }
@@ -60,7 +60,7 @@ afterEvaluate {
                 // Applies the component for the debug build variant.
                 from components.debug
 
-                groupId = 'com.akhris.composeutils.swipetoreveal'
+                groupId = 'com.github.akhris.composeutils.swipetoreveal'
                 artifactId = 'final-debug'
                 version = version_name
             }
