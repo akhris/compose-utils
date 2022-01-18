@@ -11,9 +11,6 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
@@ -25,7 +22,6 @@ import kotlinx.coroutines.CancellationException
 import timber.log.Timber
 import kotlin.math.abs
 import kotlin.math.roundToInt
-
 
 
 /**
@@ -192,16 +188,21 @@ fun rememberRevealState(
 fun SwipeToReveal(
     modifier: Modifier = Modifier,
     state: RevealState = rememberRevealState(),
-    startButton: RevealButton? = null,
-    endButton: RevealButton? = null,
+    startButtons: List<RevealButton> = listOf(),
+    endButtons: List<RevealButton> = listOf(),
+    overdrag: Int = 40,
     revealContent: @Composable BoxScope.() -> Unit
 ) = BoxWithConstraints(modifier) {
 
 
-    val directions = remember(startButton, endButton) {
+    val directions = remember(startButtons, endButtons) {
         val dirs = mutableListOf<RevealDirection>()
-        startButton?.let { dirs.add(RevealDirection.StartToEnd) }
-        endButton?.let { dirs.add(RevealDirection.EndToStart) }
+        if (startButtons.isNotEmpty()) {
+            dirs.add(RevealDirection.StartToEnd)
+        }
+        if (endButtons.isNotEmpty()) {
+            dirs.add(RevealDirection.EndToStart)
+        }
         dirs.toList()
     }
 
@@ -210,25 +211,40 @@ fun SwipeToReveal(
 
     //width of the composable
     val width = remember { constraints.maxWidth.toFloat() }
-    val revealWidthDp = remember(iconSize, iconHorPadding) { iconSize + iconHorPadding * 2 }
+
+    val iconSlotSize = remember(iconSize, iconHorPadding) { iconSize + iconHorPadding * 2 }
+
+    val revealWidthStartDp = remember(
+        iconSlotSize,
+        startButtons
+    ) { iconSlotSize * startButtons.size }
     //max revealing width
-    val revealWidthPx = with(LocalDensity.current) { revealWidthDp.toPx() }
-    val commitWidth = remember(revealWidthPx) { 1.5f * revealWidthPx }
+    val revealWidthStartPx = with(LocalDensity.current) { revealWidthStartDp.toPx() }
+    val commitWidthStart = remember(revealWidthStartPx, overdrag) { revealWidthStartPx + overdrag }
+
+    val revealWidthEndDp = remember(
+        iconSlotSize,
+        endButtons
+    ) { iconSlotSize * endButtons.size }
+    //max revealing width
+    val revealWidthEndPx = with(LocalDensity.current) { revealWidthEndDp.toPx() }
+    val commitWidthEnd = remember(revealWidthStartPx, overdrag) { revealWidthEndPx + overdrag }
+
 
     val revealThresholds: (RevealDirection) -> ThresholdConfig = { FractionalThreshold(0.5f) }
 
 
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
-    val anchors = remember(revealWidthPx, commitWidth) {
+    val anchors = remember(revealWidthStartPx, commitWidthStart) {
         val map = mutableMapOf(0f to Default)
         if (RevealDirection.StartToEnd in directions) {
-            map += revealWidthPx to RevealedToEnd
-            map += commitWidth to CommitedToEnd
+            map += revealWidthStartPx to RevealedToEnd
+            map += commitWidthStart to CommitedToEnd
         }
         if (RevealDirection.EndToStart in directions) {
-            map += -revealWidthPx to RevealedToStart
-            map += -commitWidth to CommitedToStart
+            map += -revealWidthEndPx to RevealedToStart
+            map += -commitWidthEnd to CommitedToStart
         }
         map
     }
@@ -248,60 +264,90 @@ fun SwipeToReveal(
     var isReset by remember { mutableStateOf(false) }
 
     Box(
-        Modifier.swipeable(
-            state = state,
-            anchors = anchors,
-            thresholds = thresholds,
-            orientation = Orientation.Horizontal,
-            enabled = true,
-            reverseDirection = isRtl,
-            resistance = ResistanceConfig(
-                basis = width,
-                factorAtMin = minFactor,
-                factorAtMax = maxFactor
+        Modifier
+            .height(IntrinsicSize.Min)  //needed for children's fillMaxHeight
+            .swipeable(
+                state = state,
+                anchors = anchors,
+                thresholds = thresholds,
+                orientation = Orientation.Horizontal,
+                enabled = true,
+                reverseDirection = isRtl,
+                resistance = ResistanceConfig(
+                    basis = width,
+                    factorAtMin = minFactor,
+                    factorAtMax = maxFactor
+                )
             )
-        )
     ) {
-        val scale = if (state.isAnimationRunning) 1f else when (val curOffset =
-            abs(state.offset.value)) {
-            in 0f..revealWidthPx -> 1f
-            in revealWidthPx..commitWidth -> curOffset / revealWidthPx
-            else -> 1f
-        }
-        //background row:
-        Row(modifier = Modifier.matchParentSize()) {
-            startButton?.let { button ->
-                DrawButtonBox(
-                    button,
-                    iconSize = iconSize,
-                    iconHorPadding = iconHorPadding,
-                    scale = scale,
-                    onClick = {
-                        button.callback.invoke()
-                        isReset = true
-                    },
-                    alignment = Alignment.CenterStart
-                )
 
+        //background rows (left and right):
+        when (state.revealDirection) {
+            RevealDirection.StartToEnd -> {
+                val scale = if (state.isAnimationRunning) 1f else when (val curOffset =
+                    abs(state.offset.value)) {
+                    in 0f..revealWidthStartPx -> 1f
+                    in revealWidthStartPx..commitWidthStart -> curOffset / revealWidthStartPx
+                    else -> 1f
+                }
+                //draw start buttons:
+                if (startButtons.isNotEmpty()) {
+                    Row(
+                        Modifier
+                            .fillMaxHeight()
+                            .width(revealWidthStartDp),
+                        horizontalArrangement = Arrangement.Start,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        startButtons.forEachIndexed { index, button ->
+                            DrawButtonBox(
+                                button,
+                                width = iconSlotSize,
+                                iconHorPadding = iconHorPadding,
+                                scale = if (index == 0) scale else 1f
+                            ) {
+                                button.callback.invoke()
+                                isReset = true
+                            }
+                        }
+
+                    }
+
+
+                }
             }
+            RevealDirection.EndToStart -> {
+                //draw end buttons:
+                val scale = if (state.isAnimationRunning) 1f else when (val curOffset =
+                    abs(state.offset.value)) {
+                    in 0f..revealWidthEndPx -> 1f
+                    in revealWidthEndPx..commitWidthEnd -> curOffset / revealWidthEndPx
+                    else -> 1f
+                }
+                if (endButtons.isNotEmpty()) {
+                    Row(
+                        Modifier
+                            .fillMaxHeight()
+                            .width(revealWidthEndDp)
+                            .align(Alignment.CenterEnd),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
 
-
-            endButton?.let { button ->
-
-                DrawButtonBox(
-                    button,
-                    iconSize = iconSize,
-                    iconHorPadding = iconHorPadding,
-                    scale = scale,
-                    onClick = {
-                        button.callback.invoke()
-                        isReset = true
-                    },
-                    alignment = Alignment.CenterEnd
-                )
-
+                        endButtons.forEachIndexed { index, button ->
+                            DrawButtonBox(
+                                button,
+                                width = iconSlotSize,
+                                iconHorPadding = iconHorPadding,
+                                scale = if (index == 0) scale else 1f
+                            ) {
+                                button.callback.invoke()
+                                isReset = true
+                            }
+                        }
+                    }
+                }
             }
-
         }
 
         Box(
@@ -320,11 +366,11 @@ fun SwipeToReveal(
     LaunchedEffect(key1 = state.currentValue) {
         when (state.currentValue) {
             CommitedToEnd -> {
-                startButton?.callback?.invoke()
+                startButtons.firstOrNull()?.callback?.invoke()
                 state.reset()
             }
             CommitedToStart -> {
-                endButton?.callback?.invoke()
+                endButtons.firstOrNull()?.callback?.invoke()
                 state.reset()
             }
             else -> {
@@ -351,46 +397,24 @@ fun SwipeToReveal(
 @Composable
 private fun RowScope.DrawButtonBox(
     button: RevealButton,
-    iconSize: Dp,
+    width: Dp,
     iconHorPadding: Dp,
     scale: Float,
     onClick: () -> Unit,
-    alignment: Alignment,
 ) {
-
     Box(
         Modifier
+            .padding(horizontal = 0.dp, vertical = 0.dp)
             .fillMaxHeight()
-            .weight(1f)
+            .width(width)
+            .clickable {
+                onClick()
+            }
     ) {
-
-        button.background.invoke(this)
-
-        Icon(
-            button.icon,
-            contentDescription = button.contentDescription,
-            Modifier
-                .align(alignment = alignment)
-                .padding(horizontal = iconHorPadding, vertical = 0.dp)
-                .size(iconSize)
-                .scale(scale)
-                .clickable {
-                    onClick()
-
-                },
-            tint = button.iconTint
-                ?: LocalContentColor.current.copy(alpha = LocalContentAlpha.current)
-        )
+        button.Background(boxScope = this, scale)
+        button.Foreground(boxScope = this, scale)
     }
 }
-
-class RevealButton(
-    val icon: ImageVector,
-    val iconTint: Color? = null,
-    val background: @Composable BoxScope.() -> Unit = {},
-    val contentDescription: String? = null,
-    val callback: () -> Unit
-)
 
 private fun getRevealDirection(from: RevealValue, to: RevealValue): RevealDirection? {
     return when {

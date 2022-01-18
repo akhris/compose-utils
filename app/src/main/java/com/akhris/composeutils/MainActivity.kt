@@ -93,51 +93,35 @@ fun MakeRevealItem(
     var endIcon by remember { mutableStateOf(true) }
 
     val startButton = remember(startIcon) {
-        RevealButton(
+        IconRevealButton(
             icon = when (startIcon) {
                 true -> Icons.Rounded.Favorite
                 false -> Icons.Rounded.FavoriteBorder
             },
+            backgroundColor = Color.Yellow,
             callback = {
                 startIcon = !startIcon
-            },
-            background = {
-                Surface(
-                    modifier = Modifier.matchParentSize(),
-                    color = Color.Green,
-                    shape = RoundedCornerShape(4.dp)
-                ) {
-
-                }
             }
         )
     }
 
     val endButton = remember(endIcon) {
-        RevealButton(
+        IconRevealButton(
             icon = when (endIcon) {
                 true -> Icons.Rounded.ThumbUp
                 false -> Icons.Rounded.ArrowDropDown
             },
+            backgroundColor = Color.Magenta,
             callback = {
                 endIcon = !endIcon
-            },
-            background = {
-                Surface(
-                    modifier = Modifier.matchParentSize(),
-                    color = Color.Magenta,
-                    shape = RoundedCornerShape(4.dp)
-                ) {
-
-                }
             }
         )
     }
     SwipeToReveal(
         state = revealState,
         modifier = Modifier.fillMaxWidth(),
-        startButton = startButton,
-        endButton = endButton
+        startButtons = listOf(startButton, endButton),
+        endButtons = listOf(endButton)
     ) {
         Card {
             ListItem(
