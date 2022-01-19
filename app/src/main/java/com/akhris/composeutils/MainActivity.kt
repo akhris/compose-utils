@@ -1,3 +1,16 @@
+/*
+ * Copyright (c) 2022. Anatoly Khristianovsky.  All rights reserved.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.akhris.composeutils
 
 import android.os.Bundle
@@ -11,10 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowDropDown
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.FavoriteBorder
-import androidx.compose.material.icons.rounded.ThumbUp
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -89,39 +99,70 @@ fun MakeRevealItem(
     peekEnd: Boolean = false
 ) {
     val revealState = rememberRevealState()
-    var startIcon by remember { mutableStateOf(true) }
-    var endIcon by remember { mutableStateOf(true) }
+    var startIcon1 by remember { mutableStateOf(true) }
+    var startIcon2 by remember { mutableStateOf(true) }
+    var endIcon1 by remember { mutableStateOf(true) }
+    var endIcon2 by remember { mutableStateOf(true) }
 
-    val startButton = remember(startIcon) {
+    val startButton1 = remember(startIcon1) {
         IconRevealButton(
-            icon = when (startIcon) {
+            icon = when (startIcon1) {
                 true -> Icons.Rounded.Favorite
                 false -> Icons.Rounded.FavoriteBorder
             },
             backgroundColor = Color.Yellow,
             callback = {
-                startIcon = !startIcon
+                startIcon1 = !startIcon1
             }
         )
     }
 
-    val endButton = remember(endIcon) {
+    val startButton2 = remember(startIcon2) {
         IconRevealButton(
-            icon = when (endIcon) {
-                true -> Icons.Rounded.ThumbUp
-                false -> Icons.Rounded.ArrowDropDown
+            icon = when (startIcon2) {
+                true -> Icons.Rounded.Check
+                false -> Icons.Rounded.CheckCircle
             },
-            backgroundColor = Color.Magenta,
+            backgroundColor = Color.LightGray,
             callback = {
-                endIcon = !endIcon
+                startIcon2 = !startIcon2
             }
         )
     }
+
+
+    val endButton1 = remember(endIcon1) {
+        IconRevealButton(
+            icon = when (endIcon1) {
+                true -> Icons.Rounded.AccountBox
+                false -> Icons.Rounded.AccountCircle
+            },
+            backgroundColor = Color.Magenta,
+            callback = {
+                endIcon1 = !endIcon1
+            }
+        )
+    }
+    val endButton2 = remember(endIcon2) {
+        IconRevealButton(
+            icon = when (endIcon2) {
+                true -> Icons.Rounded.Delete
+                false -> Icons.Rounded.Delete
+            },
+            backgroundColor = Color.Red,
+            callback = {
+                endIcon2 = !endIcon2
+            }
+        )
+    }
+
     SwipeToReveal(
         state = revealState,
         modifier = Modifier.fillMaxWidth(),
-        startButtons = listOf(startButton, endButton),
-        endButtons = listOf(endButton)
+        startButtons = listOf(startButton1, startButton2, endButton1),
+        endButtons = listOf(endButton2,endButton1, startButton1),
+        startButtonsBehavior = if (withSecondaryText) OverlappingButtonsBehavior() else StretchingButtonsBehavior(),
+        endButtonsBehavior = if (withSecondaryText) OverlappingButtonsBehavior() else StretchingButtonsBehavior()
     ) {
         Card {
             ListItem(

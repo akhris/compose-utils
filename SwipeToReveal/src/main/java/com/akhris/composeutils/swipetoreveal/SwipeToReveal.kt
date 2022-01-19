@@ -1,3 +1,16 @@
+/*
+ * Copyright (c) 2022. Anatoly Khristianovsky.  All rights reserved.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.akhris.composeutils.swipetoreveal
 
 import androidx.compose.animation.core.*
@@ -9,7 +22,6 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -180,8 +192,12 @@ fun rememberRevealState(
  * @param state The state of this component.
  * @param modifier Optional [Modifier] for this component.
  * @param revealContent The content that can be dismissed.
- * @param startButton - button at the start (left) position
- * @param endButton - button at the end (right) position
+ * @param startButtons - buttons at the start (left) position
+ * @param endButtons - buttons at the end (right) position
+ * @param startButtonsBehavior - start button's width and offset behaviors, see [IButtonBehavior] for details
+ * @param endButtonsBehavior - end button's width and offset behaviors, see [IButtonBehavior] for details
+ * @param withStartCommit - if true, drag further to the end to fire first start button's action
+ * @param withEndCommit - if true, drag further to the start to fire first end button's action
  */
 @Composable
 @ExperimentalMaterialApi
@@ -190,7 +206,11 @@ fun SwipeToReveal(
     state: RevealState = rememberRevealState(),
     startButtons: List<RevealButton> = listOf(),
     endButtons: List<RevealButton> = listOf(),
-    overdrag: Int = 40,
+    startButtonsBehavior: IButtonBehavior = StretchingButtonsBehavior(),
+    endButtonsBehavior: IButtonBehavior = StretchingButtonsBehavior(),
+    withStartCommit: Boolean = true,
+    withEndCommit: Boolean = true,
+    overdrag: Dp? = null,
     revealContent: @Composable BoxScope.() -> Unit
 ) = BoxWithConstraints(modifier) {
 
@@ -206,6 +226,7 @@ fun SwipeToReveal(
         dirs.toList()
     }
 
+
     val iconHorPadding = remember { 32.dp }
     val iconSize = remember { 24.dp }
 
@@ -216,19 +237,41 @@ fun SwipeToReveal(
 
     val revealWidthStartDp = remember(
         iconSlotSize,
-        startButtons
-    ) { iconSlotSize * startButtons.size }
+        startButtons,
+    ) {
+        iconSlotSize * startButtons.size
+    }
     //max revealing width
     val revealWidthStartPx = with(LocalDensity.current) { revealWidthStartDp.toPx() }
-    val commitWidthStart = remember(revealWidthStartPx, overdrag) { revealWidthStartPx + overdrag }
+
+    val commitWidthStartDp =
+        remember(revealWidthStartDp, overdrag, iconSlotSize, withStartCommit) {
+            if (withStartCommit) {
+                revealWidthStartDp + (overdrag ?: iconSlotSize)
+            } else null
+        }
+
+    val commitWidthStartPx =
+        with(LocalDensity.current) { commitWidthStartDp?.toPx() }
 
     val revealWidthEndDp = remember(
         iconSlotSize,
         endButtons
-    ) { iconSlotSize * endButtons.size }
+    ) {
+        iconSlotSize * endButtons.size
+    }
     //max revealing width
     val revealWidthEndPx = with(LocalDensity.current) { revealWidthEndDp.toPx() }
-    val commitWidthEnd = remember(revealWidthStartPx, overdrag) { revealWidthEndPx + overdrag }
+
+    val commitWidthEndDp = remember(revealWidthEndDp, overdrag, iconSlotSize) {
+
+        if (withEndCommit) {
+            revealWidthEndDp + (overdrag ?: iconSlotSize)
+        } else null
+    }
+
+    val commitWidthEndPx =
+        with(LocalDensity.current) { commitWidthEndDp?.toPx() }
 
 
     val revealThresholds: (RevealDirection) -> ThresholdConfig = { FractionalThreshold(0.5f) }
@@ -236,15 +279,19 @@ fun SwipeToReveal(
 
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
-    val anchors = remember(revealWidthStartPx, commitWidthStart) {
+    val anchors = remember(revealWidthStartPx, commitWidthStartPx) {
         val map = mutableMapOf(0f to Default)
         if (RevealDirection.StartToEnd in directions) {
             map += revealWidthStartPx to RevealedToEnd
-            map += commitWidthStart to CommitedToEnd
+            commitWidthStartPx?.let {
+                map += commitWidthStartPx to CommitedToEnd
+            }
         }
         if (RevealDirection.EndToStart in directions) {
             map += -revealWidthEndPx to RevealedToStart
-            map += -commitWidthEnd to CommitedToStart
+            commitWidthEndPx?.let {
+                map += -commitWidthEndPx to CommitedToStart
+            }
         }
         map
     }
@@ -280,72 +327,47 @@ fun SwipeToReveal(
                 )
             )
     ) {
+        Timber.d("width: $width offset: ${state.offset.value}")
 
-        //background rows (left and right):
-        when (state.revealDirection) {
-            RevealDirection.StartToEnd -> {
-                val scale = if (state.isAnimationRunning) 1f else when (val curOffset =
-                    abs(state.offset.value)) {
-                    in 0f..revealWidthStartPx -> 1f
-                    in revealWidthStartPx..commitWidthStart -> curOffset / revealWidthStartPx
-                    else -> 1f
-                }
-                //draw start buttons:
-                if (startButtons.isNotEmpty()) {
-                    Row(
-                        Modifier
-                            .fillMaxHeight()
-                            .width(revealWidthStartDp),
-                        horizontalArrangement = Arrangement.Start,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        startButtons.forEachIndexed { index, button ->
-                            DrawButtonBox(
-                                button,
-                                width = iconSlotSize,
-                                iconHorPadding = iconHorPadding,
-                                scale = if (index == 0) scale else 1f
-                            ) {
-                                button.callback.invoke()
-                                isReset = true
-                            }
-                        }
+        //background box (left and right):
+        Box(
+            Modifier
+                .fillMaxHeight()
+                .fillMaxWidth()
+        ) {
 
+            when (state.revealDirection) {
+                RevealDirection.StartToEnd -> {
+                    //draw start buttons:
+                    if (startButtons.isNotEmpty()) {
+                        DrawButtonGroup(
+                            buttons = startButtons,
+                            isFromStart = true,
+                            state = state,
+                            commitWidthPx = commitWidthStartPx,
+                            buttonsBehavior = startButtonsBehavior,
+                            onReset = { isReset = true },
+                            width = width
+                        )
                     }
-
-
                 }
-            }
-            RevealDirection.EndToStart -> {
-                //draw end buttons:
-                val scale = if (state.isAnimationRunning) 1f else when (val curOffset =
-                    abs(state.offset.value)) {
-                    in 0f..revealWidthEndPx -> 1f
-                    in revealWidthEndPx..commitWidthEnd -> curOffset / revealWidthEndPx
-                    else -> 1f
-                }
-                if (endButtons.isNotEmpty()) {
-                    Row(
-                        Modifier
-                            .fillMaxHeight()
-                            .width(revealWidthEndDp)
-                            .align(Alignment.CenterEnd),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
 
-                        endButtons.forEachIndexed { index, button ->
-                            DrawButtonBox(
-                                button,
-                                width = iconSlotSize,
-                                iconHorPadding = iconHorPadding,
-                                scale = if (index == 0) scale else 1f
-                            ) {
-                                button.callback.invoke()
-                                isReset = true
-                            }
-                        }
+                RevealDirection.EndToStart -> {
+                    //draw end buttons:
+                    if (endButtons.isNotEmpty()) {
+                        DrawButtonGroup(
+                            buttons = endButtons,
+                            isFromStart = false,
+                            state = state,
+                            commitWidthPx = commitWidthEndPx,
+                            buttonsBehavior = endButtonsBehavior,
+                            onReset = { isReset = true },
+                            width = width
+                        )
                     }
+                }
+                null -> {
+                    //do nothing
                 }
             }
         }
@@ -360,6 +382,7 @@ fun SwipeToReveal(
             content = revealContent
         )
     }
+
 
 
 
@@ -390,29 +413,87 @@ fun SwipeToReveal(
 
 
 /**
+ * Drawing buttons group that are on the start-side or from the end-side.
+ */
+@ExperimentalMaterialApi
+@Composable
+private fun DrawButtonGroup(
+    buttons: List<RevealButton>,
+    isFromStart: Boolean,
+    state: RevealState,
+    commitWidthPx: Float?,
+    buttonsBehavior: IButtonBehavior,
+    onReset: () -> Unit,
+    width: Float
+) {
+    var previousButtonWidth = 0f
+    buttons.forEachIndexed { index, button ->
+        val currentButtonWidth by animateFloatAsState(
+            targetValue =
+            if (commitWidthPx != null && abs(state.offset.value) >= commitWidthPx && index == 0) {
+                abs(state.offset.value)
+            } else
+                buttonsBehavior.getWidth(
+                    index,
+                    state.offset.value,
+                    buttons.size
+                )
+        )
+
+        var currentButtonOffset =
+            if (commitWidthPx != null && abs(state.offset.value) >= commitWidthPx) {
+                previousButtonWidth
+            } else
+                buttonsBehavior.getXOffset(
+                    index,
+                    state.offset.value,
+                    buttons.size
+                )
+
+
+        if (!isFromStart) {
+            currentButtonOffset = width - currentButtonWidth - currentButtonOffset
+        }
+
+        DrawButtonBox(
+            button,
+            width = currentButtonWidth,
+            xOffset = currentButtonOffset,
+        ) {
+            button.callback.invoke()
+            onReset()
+        }
+        previousButtonWidth += currentButtonWidth
+
+    }
+}
+
+/**
  * Draws [Box] with two layers:
  * - background layer from [RevealButton] object - see [RevealButton.background] for details
  * - front layer icon from [RevealButton] icon's parameters depending
  */
 @Composable
-private fun RowScope.DrawButtonBox(
+private fun DrawButtonBox(
     button: RevealButton,
-    width: Dp,
-    iconHorPadding: Dp,
-    scale: Float,
-    onClick: () -> Unit,
+    width: Float,
+    xOffset: Float,
+    onClick: () -> Unit
 ) {
     Box(
         Modifier
             .padding(horizontal = 0.dp, vertical = 0.dp)
             .fillMaxHeight()
-            .width(width)
+            .width(
+                with(LocalDensity.current) { width.toDp() }
+            )
+            .offset(x = with(LocalDensity.current) { xOffset.toDp() })
             .clickable {
                 onClick()
             }
     ) {
-        button.Background(boxScope = this, scale)
-        button.Foreground(boxScope = this, scale)
+        button.Background(boxScope = this)
+        button.Foreground(boxScope = this)
     }
 }
 
