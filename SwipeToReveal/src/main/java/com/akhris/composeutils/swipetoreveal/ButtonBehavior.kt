@@ -24,7 +24,7 @@ interface IButtonBehavior {
     fun getXOffset(buttonIndex: Int, frontLayerOffset: Float, totalButtonsCount: Int): Float
 }
 
-class StretchingButtonsBehavior : IButtonBehavior {
+class StretchingBehavior : IButtonBehavior {
     override fun getWidth(
         buttonIndex: Int,
         frontLayerOffset: Float,
@@ -42,13 +42,13 @@ class StretchingButtonsBehavior : IButtonBehavior {
     }
 }
 
-class OverlappingButtonsBehavior(private val fixedWidthPx: Float = 176f) : IButtonBehavior {
+open class OverlappingBehavior(private val fixedWidthPx: Float = 176f) : IButtonBehavior {
     override fun getWidth(
         buttonIndex: Int,
         frontLayerOffset: Float,
         totalButtonsCount: Int
     ): Float {
-        return if (abs(frontLayerOffset) <= totalButtonsCount * fixedWidthPx){
+        return if (abs(frontLayerOffset) <= totalButtonsCount * fixedWidthPx) {
             fixedWidthPx
         } else {
             abs(frontLayerOffset) / totalButtonsCount
@@ -62,6 +62,18 @@ class OverlappingButtonsBehavior(private val fixedWidthPx: Float = 176f) : IButt
         totalButtonsCount: Int
     ): Float {
         return buttonIndex * abs(frontLayerOffset) / totalButtonsCount
+    }
+
+}
+
+class FixedPositionBehavior(fixedWidthPx: Float = 176f) : OverlappingBehavior(fixedWidthPx) {
+
+    override fun getXOffset(
+        buttonIndex: Int,
+        frontLayerOffset: Float,
+        totalButtonsCount: Int
+    ): Float {
+        return buttonIndex * getWidth(buttonIndex, frontLayerOffset, totalButtonsCount)
     }
 
 }
