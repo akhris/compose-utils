@@ -16,46 +16,24 @@ package com.akhris.composeutils
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.ColorRes
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.akhris.composeutils.swipetoreveal.*
 import com.akhris.composeutils.ui.theme.ComposeUtilsTheme
-import kotlin.random.Random
-import kotlin.random.nextInt
 
 @ExperimentalMaterialApi
 class MainActivity : ComponentActivity() {
-
-    private val pairIcons = listOf(
-        Icons.Default.Favorite to Icons.Default.FavoriteBorder,
-        Icons.Default.Done to Icons.Default.CheckCircle
-    )
-    private val icons = listOf(
-        Icons.Default.Delete,
-        Icons.Default.Share,
-        Icons.Default.Done,
-        Icons.Default.Edit
-    )
-
-    private val colors = listOf(
-        Color.Green,
-        Color.Yellow,
-        Color.Red,
-        Color.Magenta,
-        Color.Cyan,
-        Color.LightGray
-    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,10 +49,10 @@ class MainActivity : ComponentActivity() {
 
 
     @Composable
-    private fun TestList(itemCount: Int = 4) {
+    private fun TestList() {
 
-        var peekStart by remember { mutableStateOf(-1) }
-        var peekEnd by remember { mutableStateOf(-1) }
+        var peekStart by remember { mutableStateOf(false) }
+        var peekEnd by remember { mutableStateOf(false) }
 
         Column(
             Modifier
@@ -83,78 +61,96 @@ class MainActivity : ComponentActivity() {
         ) {
 
             Button(modifier = Modifier.align(Alignment.CenterHorizontally), onClick = {
-                peekStart = Random.nextInt(range = 0 until itemCount)
+                peekStart = !peekStart
             }) {
                 Text(text = "peek start to end!")
             }
 
             Button(modifier = Modifier.align(Alignment.CenterHorizontally), onClick = {
-                peekEnd = Random.nextInt(range = 0 until itemCount)
+                peekEnd = !peekEnd
             }) {
                 Text(text = "peek end to start!")
             }
 
-            for (i in 0 until itemCount)
-                MakeRevealItem(
-                    peekStart = i == peekStart,
-                    peekEnd = i == peekEnd,
-                    buttonBehavior = when (i % 3) {
-                        0 -> StretchingBehavior()
-                        1 -> OverlappingBehavior()
-                        else -> FixedPositionBehavior()
-                    },
-                    startButtonsCount = (i % 3 + 1),
-                    endButtonsCount = (i % 3 + 1)
-                )
 
+            MakeRevealItem(
+                text = "Stretching buttons",
+                peekStart = peekStart,
+                peekEnd = peekEnd,
+                buttonBehavior = StretchingBehavior(),
+                onStartPeeked = { peekStart = false },
+                onEndPeeked = { peekEnd = false }
+            )
+            MakeRevealItem(
+                text = "Overlapping buttons",
+                withSecondaryText = true,
+                buttonBehavior = OverlappingBehavior()
+            )
+            MakeRevealItem(
+                text = "Fixed buttons",
+                buttonBehavior = FixedPositionBehavior()
+            )
+
+            MakeRevealItem(
+                text = "Overlapping with no auto-firing",
+                buttonBehavior = OverlappingBehavior(),
+                withCommit = false
+            )
 
         }
 
-    }
-
-    private fun getRandomColor(): Color {
-        return colors[Random.nextInt(colors.size)]
     }
 
     @ExperimentalMaterialApi
     @Composable
     fun MakeRevealItem(
+        text: String = "List item with reveal",
         withSecondaryText: Boolean = false,
         peekStart: Boolean = false,
         peekEnd: Boolean = false,
-        startButtonsCount: Int = 1,
-        endButtonsCount: Int = 1,
-        buttonBehavior: IButtonBehavior
+        buttonBehavior: IButtonBehavior,
+        onStartPeeked: (() -> Unit)? = null,
+        onEndPeeked: (() -> Unit)? = null,
+        withCommit: Boolean = true
     ) {
         val revealState = rememberRevealState()
 
-        val pairedButtonIndex = remember { Random.nextInt(until = 2) }
-        var pairedClicked by remember { mutableStateOf(false) }
+        var isFavorite by remember { mutableStateOf(false) }
 
-        val startButtons = List(startButtonsCount) { index ->
-            when (index) {
-                0 -> IconRevealButton(
-                    if (pairedClicked) pairIcons[pairedButtonIndex].first else pairIcons[pairedButtonIndex].second,
-                    callback = {
-                        pairedClicked = !pairedClicked
-                    },
-                    backgroundColor = getRandomColor()
-                )
-                else -> IconRevealButton(
-                    icon = icons[icons.size % index],
-                    callback = {},
-                    backgroundColor = getRandomColor()
-                )
-            }
-        }
-
-        val endButtons = List(endButtonsCount) { index ->
+        val startButtons = listOf(
             IconRevealButton(
-                icon = icons[Random.nextInt(icons.size)],
-                callback = {},
-                backgroundColor = getRandomColor()
+                icon = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                callback = {
+                    isFavorite = !isFavorite
+                },
+                backgroundColor = Color.Yellow,
+                startCornersRadius = 4.dp
+            ),
+            IconRevealButton(
+                icon = Icons.Rounded.Edit,
+                callback = {
+
+                },
+                backgroundColor = Color.Magenta
             )
-        }
+        )
+
+        val endButtons = listOf(
+            IconRevealButton(
+                icon = Icons.Rounded.Delete,
+                callback = {},
+                iconTint = Color.Red,
+                endCornersRadius = 4.dp
+            ),
+            IconRevealButton(
+                icon = Icons.Rounded.Share,
+                callback = {}
+            ),
+            IconRevealButton(
+                icon = Icons.Rounded.Settings,
+                callback = {}
+            )
+        )
 
 
         SwipeToReveal(
@@ -163,13 +159,12 @@ class MainActivity : ComponentActivity() {
             startButtons = startButtons,
             endButtons = endButtons,
             startButtonsBehavior = buttonBehavior,
-            endButtonsBehavior = buttonBehavior
+            endButtonsBehavior = buttonBehavior,
+            withEndCommit = withCommit,
+            withStartCommit = withCommit
         ) {
             Card {
                 ListItem(
-                    overlineText = {
-                        Text(text = "${revealState.offset.value}")
-                    },
                     secondaryText = if (withSecondaryText) {
                         {
                             Text(text = "WIDE ELEMENT")
@@ -177,7 +172,7 @@ class MainActivity : ComponentActivity() {
                     } else null,
                     text = {
                         Text(
-                            text = "List item with reveal"
+                            text = text
                         )
                     })
             }
@@ -186,10 +181,11 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(key1 = peekStart, key2 = peekEnd) {
             if (peekStart) {
                 revealState.peek(RevealDirection.StartToEnd)
+                onStartPeeked?.invoke()
             }
             if (peekEnd) {
                 revealState.peek(RevealDirection.EndToStart)
-
+                onEndPeeked?.invoke()
             }
         }
 

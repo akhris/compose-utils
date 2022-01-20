@@ -18,7 +18,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
-import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -31,7 +30,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.akhris.composeutils.swipetoreveal.RevealValue.*
 import kotlinx.coroutines.CancellationException
-import timber.log.Timber
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -89,6 +87,7 @@ enum class RevealValue {
  * @param initialValue The initial value of the state.
  * @param confirmStateChange Optional callback invoked to confirm or veto a pending state change.
  */
+@Suppress("unused")
 @ExperimentalMaterialApi
 class RevealState(
     initialValue: RevealValue,
@@ -298,7 +297,6 @@ fun SwipeToReveal(
 
     val thresholds = { from: RevealValue, to: RevealValue ->
         val dir = getRevealDirection(from, to)
-        Timber.d("$from - $to -> $dir")
         revealThresholds(dir!!)
     }
 
@@ -327,7 +325,6 @@ fun SwipeToReveal(
                 )
             )
     ) {
-        Timber.d("width: $width offset: ${state.offset.value}")
 
         //background box (left and right):
         Box(
@@ -428,6 +425,18 @@ private fun DrawButtonGroup(
 ) {
     var previousButtonWidth = 0f
     buttons.forEachIndexed { index, button ->
+
+
+        val animation = remember<AnimationSpec<Float>>(commitWidthPx, state.offset.value) {
+            if (commitWidthPx == null || abs(state.offset.value) < commitWidthPx) {
+                //no animation is required
+                tween(durationMillis = 0, easing = LinearEasing)
+            } else {
+                spring()
+            }
+        }
+
+
         val currentButtonWidth by animateFloatAsState(
             targetValue =
             if (commitWidthPx != null && abs(state.offset.value) >= commitWidthPx && index == 0) {
@@ -437,8 +446,10 @@ private fun DrawButtonGroup(
                     index,
                     state.offset.value,
                     buttons.size
-                )
+                ),
+            animationSpec = animation
         )
+
 
         var currentButtonOffset =
             if (commitWidthPx != null && abs(state.offset.value) >= commitWidthPx) {
@@ -470,8 +481,8 @@ private fun DrawButtonGroup(
 
 /**
  * Draws [Box] with two layers:
- * - background layer from [RevealButton] object - see [RevealButton.background] for details
- * - front layer icon from [RevealButton] icon's parameters depending
+ * - background layer from [RevealButton] object - see [RevealButton.Background] for details
+ * - front layer icon from [RevealButton] object - see [RevealButton.Foreground] for details
  */
 @Composable
 private fun DrawButtonBox(
