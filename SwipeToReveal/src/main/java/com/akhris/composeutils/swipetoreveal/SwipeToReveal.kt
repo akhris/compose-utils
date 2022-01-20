@@ -386,12 +386,12 @@ fun SwipeToReveal(
     LaunchedEffect(key1 = state.currentValue) {
         when (state.currentValue) {
             CommitedToEnd -> {
-                startButtons.firstOrNull()?.callback?.invoke()
                 state.reset()
+                startButtons.firstOrNull()?.callback?.invoke()
             }
             CommitedToStart -> {
-                endButtons.firstOrNull()?.callback?.invoke()
                 state.reset()
+                endButtons.firstOrNull()?.callback?.invoke()
             }
             else -> {
                 //do nothing
@@ -471,8 +471,8 @@ private fun DrawButtonGroup(
             width = currentButtonWidth,
             xOffset = currentButtonOffset,
         ) {
-            button.callback.invoke()
             onReset()
+            button.callback.invoke()
         }
         previousButtonWidth += currentButtonWidth
 
