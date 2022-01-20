@@ -36,6 +36,8 @@ import kotlin.math.roundToInt
 
 /**
  * The directions in which a [SwipeToReveal] can be dismissed.
+ *
+ * Based on [androidx.compose.material.DismissDirection] by The Android Open Source Project
  */
 enum class RevealDirection {
     /**
@@ -52,6 +54,8 @@ enum class RevealDirection {
 
 /**
  * Possible values of [RevealState].
+ *
+ *  Based on [androidx.compose.material.DismissValue] by The Android Open Source Project
  */
 enum class RevealValue {
     /**
@@ -84,6 +88,7 @@ enum class RevealValue {
 /**
  * State of the [SwipeToReveal] composable.
  *
+ * Based on [androidx.compose.material.DismissState] by The Android Open Source Project
  * @param initialValue The initial value of the state.
  * @param confirmStateChange Optional callback invoked to confirm or veto a pending state change.
  */
@@ -171,6 +176,7 @@ class RevealState(
 /**
  * Create and [remember] a [RevealState].
  *
+ * Based on [androidx.compose.material.rememberDismissState()] by The Android Open Source Project
  * @param initialValue The initial value of the state.
  * @param confirmStateChange Optional callback invoked to confirm or veto a pending state change.
  */
