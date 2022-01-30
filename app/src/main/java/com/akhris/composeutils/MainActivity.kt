@@ -27,10 +27,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.akhris.composeutils.swipetoreveal.*
 import com.akhris.composeutils.ui.theme.ComposeUtilsTheme
+import com.akhris.composeutils.userauthflow.auth.AuthScreen
+import com.akhris.composeutils.userauthflow.auth.AuthScreenContent
 
 @ExperimentalMaterialApi
 class MainActivity : ComponentActivity() {
@@ -39,11 +42,36 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             ComposeUtilsTheme {
-                // A surface container using the 'background' color from the theme
                 Surface(color = MaterialTheme.colors.background) {
-                    TestList()
+                    Tabs { index ->
+                        when (index) {
+                            0->TestList()
+                            1->AuthFlow()
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    @Composable
+    private fun Tabs(
+        tabContent: @Composable (index: Int) -> Unit
+    ) {
+        var tabIndex by remember { mutableStateOf(0) }
+        val tabTitles = listOf(
+            R.string.tab_title_swipe_to_reveal,
+            R.string.tab_title_auth_flow
+        )
+        Column {
+            TabRow(selectedTabIndex = tabIndex) {
+                tabTitles.forEachIndexed { index, titleId ->
+                    Tab(selected = tabIndex == index,
+                        onClick = { tabIndex = index },
+                        text = { Text(text = stringResource(id = titleId)) })
+                }
+            }
+            tabContent(tabIndex)
         }
     }
 
@@ -192,6 +220,11 @@ class MainActivity : ComponentActivity() {
 
     }
 
+}
+
+@Composable
+private fun AuthFlow(){
+//    AuthScreenContent()
 }
 
 @Composable

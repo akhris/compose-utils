@@ -11,15 +11,10 @@
  * limitations under the License.
  */
 
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        google()
-        mavenCentral()
-        jcenter() // Warning: this repository is going to shut down soon
-    }
-}
-rootProject.name = "Compose Utils"
-include ':app'
-include ':SwipeToReveal'
-include ':UserAuthFlow'
+package com.akhris.composeutils.userauthflow.utils
+
+import android.text.TextUtils
+import android.util.Patterns
+
+fun String.isValidEmail(): Boolean =
+    !TextUtils.isEmpty(this) && Patterns.EMAIL_ADDRESS.matcher(this).matches()
