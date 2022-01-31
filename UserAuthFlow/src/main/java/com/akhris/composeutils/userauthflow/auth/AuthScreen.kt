@@ -26,16 +26,12 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.akhris.composeutils.userauthflow.R
 import com.akhris.composeutils.userauthflow.screens.InitialScreen
@@ -47,8 +43,8 @@ import com.akhris.composeutils.userauthflow.viewmodel.IAuthenticatorViewModel
 
 @Composable
 fun AuthScreenContent(
-    authenticatorViewModel: IAuthenticatorViewModel = AuthenticatorViewModelTest()
-//    onDismiss: () -> Unit
+    authenticatorViewModel: IAuthenticatorViewModel = AuthenticatorViewModelTest(),
+    onDismiss: (() -> Unit)? = null
 ) {
 
     val authState by remember(authenticatorViewModel) {
@@ -65,6 +61,14 @@ fun AuthScreenContent(
             {
                 authScreen = it
             }
+        },
+        onDismiss = onDismiss,
+        titleRes = when (authScreen) {
+            AuthScreen.ForgotPassword -> R.string.user_auth_forgot_password
+            AuthScreen.Initial -> null
+            AuthScreen.SignIn -> R.string.user_auth_sign_in
+            AuthScreen.SignUp -> R.string.user_auth_sign_up
+            AuthScreen.SignUpVerification -> R.string.user_auth_confirm_code
         }
     ) {
 
@@ -142,7 +146,7 @@ sealed class AuthScreen {
 fun AuthScreenPattern(
     onBack: (() -> Unit)? = null,
     onDismiss: (() -> Unit)? = null,
-    title: String? = null,
+    @StringRes titleRes: Int? = null,
     content: @Composable () -> Unit
 ) {
     Surface(
@@ -155,45 +159,40 @@ fun AuthScreenPattern(
                 .wrapContentHeight()
                 .padding(8.dp)
         ) {
-            CompositionLocalProvider(
-                LocalLayoutDirection provides
-                        if (onBack != null)
-                            LayoutDirection.Ltr
-                        else LayoutDirection.Rtl
-            ) {
-                Row {
-                    Icon(
-                        imageVector = if (onBack != null) Icons.Rounded.ArrowBack else Icons.Rounded.Close,
-                        contentDescription = "back",
-                        Modifier
-                            .padding(16.dp)
-                            .clickable {
-                                if (onBack != null) {
-                                    onBack()
-                                } else {
-                                    onDismiss?.invoke()
-                                }
-                            }
-//                            .align(if (onBack != null) Alignment.Start else Alignment.End),
-                        ,
-                        tint = MaterialTheme.colors.onSurface
-                    )
-                    title?.let {
-                        Text(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(8.dp),
-                            text = it,
-                            style = MaterialTheme.typography.h4,
-                            textAlign = when (LocalLayoutDirection.current) {
-                                LayoutDirection.Ltr -> TextAlign.Start
-                                LayoutDirection.Rtl -> TextAlign.End
-                            }
-                        )
-                    }
-                }
 
+            Row {
+                Icon(
+                    imageVector = if (onBack != null) Icons.Rounded.ArrowBack else Icons.Rounded.Close,
+                    contentDescription = "back",
+                    Modifier
+                        .padding(16.dp)
+                        .clickable {
+                            if (onBack != null) {
+                                onBack()
+                            } else {
+                                onDismiss?.invoke()
+                            }
+                        }
+//                            .align(if (onBack != null) Alignment.Start else Alignment.End),
+                    ,
+                    tint = MaterialTheme.colors.onSurface
+                )
+                titleRes?.let {
+                    Text(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(8.dp),
+                        text = stringResource(id = it),
+                        style = MaterialTheme.typography.h4
+//                            textAlign = when (LocalLayoutDirection.current) {
+//                                LayoutDirection.Ltr -> TextAlign.Start
+//                                LayoutDirection.Rtl -> TextAlign.End
+//                            }
+                    )
+                }
             }
+
+
 
             content()
         }
@@ -207,12 +206,12 @@ internal fun PasswordField(
     onPasswordChanged: ((String) -> Unit)? = null,
     @StringRes hintRes: Int = R.string.user_auth_password_hint,
     @StringRes errorRes: Int? = R.string.user_auth_password_error,
-    passwordValidate: (String) -> Boolean,
+    isPasswordValid: Boolean = true,
     withVisibilityToggle: Boolean = false
 ) {
     //password text field
     var passwordVisible by remember { mutableStateOf(false) }
-    val isError = remember(userPassword, passwordValidate) { !passwordValidate(userPassword) }
+//    val isPasswordValid = remember(userPassword, passwordValidate) { !passwordValidate(userPassword) }
     Column {
         TextField(
             modifier = Modifier
@@ -224,7 +223,7 @@ internal fun PasswordField(
             onValueChange = {
                 onPasswordChanged?.invoke(it)
             },
-            isError = isError,
+            isError = !isPasswordValid,
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             label = { Text(stringResource(id = hintRes)) },
             colors = TextFieldDefaults.textFieldColors(backgroundColor = Color.Transparent),
@@ -244,7 +243,7 @@ internal fun PasswordField(
             } else null
         )
 
-        if (isError && errorRes != null) {
+        if (!isPasswordValid && errorRes != null) {
             Text(
                 text = stringResource(id = errorRes),
                 color = MaterialTheme.colors.error,
@@ -261,8 +260,8 @@ internal fun PasswordField(
 internal fun EmailField(
     userEmail: String,
     onEmailChanged: (String) -> Unit,
-    isValidEmail: Boolean = true,
-    @StringRes errorID: Int = R.string.user_auth_wrong_email
+    isEmailValid: Boolean = true,
+    @StringRes errorRes: Int = R.string.user_auth_wrong_email
 ) {
     //e-mail text field
     BaseAuthField(
@@ -271,8 +270,8 @@ internal fun EmailField(
         withClearIcon = true,
         hintID = R.string.user_auth_email_hint,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-        textValidate = { isValidEmail },
-        errorID = errorID
+        isError = !isEmailValid,
+        errorID = errorRes
     )
 //    TextField(
 //        modifier = Modifier
@@ -307,16 +306,8 @@ internal fun BaseAuthField(
     @StringRes errorID: Int? = null,
     withClearIcon: Boolean,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    textValidate: (text: String) -> Boolean = { true }
+    isError: Boolean = false
 ) {
-
-    var errorCheckAllowed by remember { mutableStateOf(false) }
-
-    val isError = remember(
-        text,
-        textValidate,
-        errorCheckAllowed
-    ) { if (errorCheckAllowed) !textValidate(text) else false }
 
     Column {
 
@@ -324,9 +315,7 @@ internal fun BaseAuthField(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
-                .onFocusChanged {
-                    errorCheckAllowed = !it.isFocused && text.isNotEmpty()
-                }
+
 //                    .testTag(textTestTag)
             ,
             value = text,

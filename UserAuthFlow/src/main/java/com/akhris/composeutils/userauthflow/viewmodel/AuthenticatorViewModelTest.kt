@@ -21,6 +21,7 @@ import com.akhris.composeutils.userauthflow.auth.AuthState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import kotlin.random.Random
 
 class AuthenticatorViewModelTest : ViewModel(), IAuthenticatorViewModel {
 
@@ -60,13 +61,19 @@ class AuthenticatorViewModelTest : ViewModel(), IAuthenticatorViewModel {
     }
 
     override fun initiateSignIn(userEmail: String, userPassword: String) {
-        val error = false
+        val error = Random.nextBoolean()
+        val errorType = Random.nextInt(2)
         viewModelScope.launch {
-            Timber.d("initiateSignIn. Wait for 2s")
+            Timber.d("initiateSignIn: $userEmail-$userPassword. Wait for 2s")
             _signStatus.value = AuthState.SignIn.SignInInProgress
             delay(2000)
             _signStatus.value = if (error) {
-                AuthState.SignIn.Failure.InvalidPassword
+                Timber.d("sign in error!")
+                when (errorType) {
+                    0 -> AuthState.SignIn.Failure.InvalidPassword
+                    else -> AuthState.SignIn.Failure.EMailNotExists
+                }
+
             } else {
                 Timber.d("sign in success")
                 AuthState.SignedIn

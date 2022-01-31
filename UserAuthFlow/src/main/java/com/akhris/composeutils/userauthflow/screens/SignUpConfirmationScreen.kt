@@ -58,13 +58,12 @@ internal fun SignUpConfirmationScreen(
                 AuthState.Confirmation.Failure.ConfirmationCodeDeliveryFailure -> R.string.user_auth_sign_up_error_code_delivery
                 else -> null
             },
-            textValidate = {
-                state !in listOf(
-                    AuthState.Confirmation.Failure.CodeExpired,
-                    AuthState.Confirmation.Failure.CodeMismatch,
-                    AuthState.Confirmation.Failure.ConfirmationCodeDeliveryFailure
-                )
-            }
+            isError = state in listOf(
+                AuthState.Confirmation.Failure.CodeExpired,
+                AuthState.Confirmation.Failure.CodeMismatch,
+                AuthState.Confirmation.Failure.ConfirmationCodeDeliveryFailure
+            )
+
         )
         Button(modifier = Modifier
             .align(Alignment.End)

@@ -60,23 +60,23 @@ internal fun SignUpInitialScreen(
             onTextChanged = { userName = it },
             withClearIcon = true,
             hintID = R.string.user_auth_name_hint,
-            textValidate = {
-                state != AuthState.SignUp.Failure.UsernameExists
-            }
+            isError = state == AuthState.SignUp.Failure.UsernameExists
+
         )
 
         //email field
         EmailField(
             userEmail = eMail,
             onEmailChanged = { onEmailChanged?.invoke(it) },
-            isValidEmail = eMail.isValidEmail() && state != AuthState.SignUp.Failure.UserEmailExists
+            isEmailValid = eMail.isValidEmail() && state != AuthState.SignUp.Failure.UserEmailExists
         )
 
         //password field
         PasswordField(
             userPassword = userPassword1,
             onPasswordChanged = { userPassword1 = it },
-            passwordValidate = { it.isNotEmpty() })
+            isPasswordValid = true
+        )
 //            passwordValidate = { isValidPassword1 || it.isNotEmpty() })
 
         //password repeat field
@@ -85,7 +85,8 @@ internal fun SignUpInitialScreen(
             onPasswordChanged = { userPassword2 = it },
             hintRes = R.string.user_auth_repeat_password_hint,
             errorRes = R.string.user_auth_password_repeat_error,
-            passwordValidate = { (it == userPassword1) })
+            isPasswordValid = true
+        )
 //            passwordValidate = { isValidPassword2 || (it == userPassword1) })
 
 

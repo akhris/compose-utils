@@ -13,16 +13,18 @@
 
 package com.akhris.composeutils.userauthflow.screens
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.akhris.composeutils.userauthflow.R
 import com.akhris.composeutils.userauthflow.auth.EmailField
-import com.akhris.composeutils.userauthflow.utils.isValidEmail
 
 @Composable
 internal fun InitialScreen(
@@ -37,12 +39,11 @@ internal fun InitialScreen(
         //email field
         EmailField(
             userEmail = eMail,
-            onEmailChanged = { onEmailChanged?.invoke(it) },
-            isValidEmail = eMail.isValidEmail()
+            onEmailChanged = { onEmailChanged?.invoke(it) }
         )
 
 
-        Row {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             onForgotPasswordClicked?.let {
                 TextButton(onClick = it) {
                     Text(text = stringResource(id = R.string.user_auth_forgot_password))
