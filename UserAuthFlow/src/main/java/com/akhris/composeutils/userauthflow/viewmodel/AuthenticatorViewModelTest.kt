@@ -17,16 +17,17 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.akhris.composeutils.userauthflow.auth.AuthState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
-class AuthenticatorViewModelTest   : ViewModel(), IAuthenticatorViewModel {
+class AuthenticatorViewModelTest : ViewModel(), IAuthenticatorViewModel {
 
 
-    private val _signStatus: MutableLiveData<SignStatus?> = MutableLiveData(null)
+    private val _signStatus: MutableLiveData<AuthState?> = MutableLiveData(null)
 
-    override val signStatus: LiveData<SignStatus?> = _signStatus
+    override val signStatus: LiveData<AuthState?> = _signStatus
 
 
     override fun initiateSignUp(name: String, userEmail: String, userPassword: String) {
@@ -36,24 +37,24 @@ class AuthenticatorViewModelTest   : ViewModel(), IAuthenticatorViewModel {
             Timber.d("initiateSignUp. Wait for 2s")
             delay(2000)
             _signStatus.value = if (error) {
-                SignStatus.Error(IllegalStateException("User was not found"))
+                AuthState.SignUp.Failure.UserEmailExists
             } else {
                 Timber.d("sending test confirmation code...")
-                SignStatus.SignUp.ConfirmationCodeWasSent
+                AuthState.SignUp.CodeWasSent
             }
         }
     }
 
     override fun confirmSignUp(userEmail: String, confirmationCode: String) {
-        val error = false
+        val error = true
         viewModelScope.launch {
             Timber.d("confirmSignUp. Wait for 3s")
             delay(3000)
             _signStatus.value = if (error) {
-                SignStatus.Error(IllegalStateException("User not confirmed"))
+                AuthState.Confirmation.Failure.CodeMismatch
             } else {
                 Timber.d("sign up confirmed")
-                SignStatus.SignUp.SignUpConfirmed
+                AuthState.Confirmation.CodeConfirmed
             }
         }
     }
@@ -62,13 +63,13 @@ class AuthenticatorViewModelTest   : ViewModel(), IAuthenticatorViewModel {
         val error = false
         viewModelScope.launch {
             Timber.d("initiateSignIn. Wait for 2s")
-            _signStatus.value = SignStatus.SigningInProgress
+            _signStatus.value = AuthState.SignIn.SignInInProgress
             delay(2000)
             _signStatus.value = if (error) {
-                SignStatus.Error(IllegalStateException("Invalid password"))
+                AuthState.SignIn.Failure.InvalidPassword
             } else {
                 Timber.d("sign in success")
-                SignStatus.SignedIn
+                AuthState.SignedIn
             }
         }
     }
@@ -82,25 +83,25 @@ class AuthenticatorViewModelTest   : ViewModel(), IAuthenticatorViewModel {
     }
 
     override fun signOut() {
-        val error = false
-        viewModelScope.launch {
-            Timber.d("initiateSignOut. Wait for 2s")
-            _signStatus.value = SignStatus.SigningOutInProgress
-            delay(2000)
-            _signStatus.value = if (error) {
-                SignStatus.Error(IllegalStateException("Unknown error"))
-            } else {
-                Timber.d("sign out success")
-                SignStatus.SignedOut
-            }
-        }
+//        val error = false
+//        viewModelScope.launch {
+//            Timber.d("initiateSignOut. Wait for 2s")
+//            _signStatus.value = SignStatus.SigningOutInProgress
+//            delay(2000)
+//            _signStatus.value = if (error) {
+//                SignStatus.Error(IllegalStateException("Unknown error"))
+//            } else {
+//                Timber.d("sign out success")
+//                SignStatus.SignedOut
+//            }
+//        }
     }
 
     override fun updateCurrentSignStatus() {
         val isSignedIn = false
         _signStatus.value = when (isSignedIn) {
-            true -> SignStatus.SignedIn
-            false -> SignStatus.SignedOut
+            true -> AuthState.SignedIn
+            false -> AuthState.SignedOut
         }
     }
 }

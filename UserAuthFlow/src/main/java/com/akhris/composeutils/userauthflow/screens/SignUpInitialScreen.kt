@@ -17,17 +17,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Button
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.akhris.composeutils.userauthflow.R
+import com.akhris.composeutils.userauthflow.auth.AuthState
 import com.akhris.composeutils.userauthflow.auth.BaseAuthField
 import com.akhris.composeutils.userauthflow.auth.EmailField
 import com.akhris.composeutils.userauthflow.auth.PasswordField
-import com.akhris.composeutils.userauthflow.auth.SignUpResult
 import com.akhris.composeutils.userauthflow.utils.isValidEmail
 
 /**
@@ -40,27 +40,28 @@ import com.akhris.composeutils.userauthflow.utils.isValidEmail
  * and button "sign up"
  */
 @Composable
-private fun SignUpInitialScreen(
-    userName: String = "",
+internal fun SignUpInitialScreen(
     eMail: String = "",
-    userPassword1: String = "",
-    userPassword2: String = "",
-    onUserNameChanged: ((String) -> Unit)? = null,
     onEmailChanged: ((String) -> Unit)? = null,
-    onUserPassword1Changed: ((String) -> Unit)? = null,
-    onUserPassword2Changed: ((String) -> Unit)? = null,
-    onSignupClicked: (() -> Unit)? = null,
-    error: SignUpResult.Failure? = null
+    onSignupClicked: ((username: String, email: String, password: String) -> Unit)? = null,
+    state: AuthState.SignUp? = null
 ) {
+
+
+    var userName by remember { mutableStateOf("") }
+    var userPassword1 by remember { mutableStateOf("") }
+    var userPassword2 by remember { mutableStateOf("") }
+
+
     Column {
         //user name field
         BaseAuthField(
             text = userName,
-            onTextChanged = { onUserNameChanged?.invoke(userName) },
+            onTextChanged = { userName = it },
             withClearIcon = true,
             hintID = R.string.user_auth_name_hint,
             textValidate = {
-                error != SignUpResult.Failure.UsernameExists
+                state != AuthState.SignUp.Failure.UsernameExists
             }
         )
 
@@ -68,21 +69,20 @@ private fun SignUpInitialScreen(
         EmailField(
             userEmail = eMail,
             onEmailChanged = { onEmailChanged?.invoke(it) },
-            isValidEmail = eMail.isValidEmail() && error != SignUpResult.Failure.UserEmailExists
-//            isValidEmail = isValidEmail || eMail.isValidEmail()
+            isValidEmail = eMail.isValidEmail() && state != AuthState.SignUp.Failure.UserEmailExists
         )
 
         //password field
         PasswordField(
             userPassword = userPassword1,
-            onPasswordChanged = onUserPassword1Changed,
+            onPasswordChanged = { userPassword1 = it },
             passwordValidate = { it.isNotEmpty() })
 //            passwordValidate = { isValidPassword1 || it.isNotEmpty() })
 
         //password repeat field
         PasswordField(
             userPassword = userPassword2,
-            onPasswordChanged = onUserPassword2Changed,
+            onPasswordChanged = { userPassword2 = it },
             hintRes = R.string.user_auth_repeat_password_hint,
             errorRes = R.string.user_auth_password_repeat_error,
             passwordValidate = { (it == userPassword1) })
@@ -92,7 +92,8 @@ private fun SignUpInitialScreen(
         //sign up button
         Button(modifier = Modifier
             .align(Alignment.End)
-            .padding(vertical = 8.dp), onClick = { onSignupClicked?.invoke() }
+            .padding(vertical = 8.dp),
+            onClick = { onSignupClicked?.invoke(userName, eMail, userPassword1) }
         ) {
             Text(text = stringResource(id = R.string.user_auth_sign_up))
         }
@@ -101,6 +102,6 @@ private fun SignUpInitialScreen(
 
 @Preview(name = "sign up initial screen", group = "sign up")
 @Composable
-fun SignUpInitialTest(){
+fun SignUpInitialTest() {
     SignUpInitialScreen()
 }

@@ -1,16 +1,13 @@
 /*
- * Copyright 2021 Anatoly Khristianovsky
- *
+ * Copyright (c) 2022. Anatoly Khristianovsky.  All rights reserved.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
+ *  See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
@@ -23,13 +20,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AccountBox
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
@@ -40,65 +35,105 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.akhris.composeutils.userauthflow.R
-import com.akhris.composeutils.userauthflow.viewmodel.*
+import com.akhris.composeutils.userauthflow.screens.InitialScreen
+import com.akhris.composeutils.userauthflow.screens.SignInScreen
+import com.akhris.composeutils.userauthflow.screens.SignUpConfirmationScreen
+import com.akhris.composeutils.userauthflow.screens.SignUpInitialScreen
+import com.akhris.composeutils.userauthflow.viewmodel.AuthenticatorViewModelTest
+import com.akhris.composeutils.userauthflow.viewmodel.IAuthenticatorViewModel
 
 @Composable
 fun AuthScreenContent(
-    stage: AuthStage
+    authenticatorViewModel: IAuthenticatorViewModel = AuthenticatorViewModelTest()
 //    onDismiss: () -> Unit
 ) {
 
+    val authState by remember(authenticatorViewModel) {
+        authenticatorViewModel.signStatus
+    }.observeAsState()
 
-//    when (stage) {
-//        AuthStage.Initial -> TODO()
-//        is AuthStage.SignInStage.InitiateSignIn -> TODO()
-//        AuthStage.SignInStage.ProcessingSignIn -> TODO()
-//        is AuthStage.SignInStage.SignInScreen -> TODO()
-//        is AuthStage.SignUpStage -> SignUp
-//    }
+    var eMail by remember { mutableStateOf("") }
 
-//    val loginAction: LoginAction? = remember(state) {
-//        when (val s = state) {
-//            is SignStatus.Error -> when (s.error) {
-//                //map error to AuthResult.Failure and show appropriate screen
-//                else -> null
-//            }
-//            SignStatus.PasswordChanged -> null
-//            SignStatus.SignUp.ConfirmationCodeWasSent -> LoginAction.SignUp.EnterConfirmationCode
-//            SignStatus.SignUp.SignUpConfirmed -> LoginAction.SignUp.SignUpResult(AuthResult.Success)
-//            SignStatus.SignedIn -> LoginAction.SignIn.SignInResult(AuthResult.Success)
-//            SignStatus.SignedOut, null -> null
-//            SignStatus.SigningInProgress -> LoginAction.SignIn.ProcessingSignIn
-//            SignStatus.SigningOutInProgress -> null
-//        }
-//
-//    }
-//
-//    Timber.d("login action: $loginAction")
+    var authScreen by remember { mutableStateOf<AuthScreen>(AuthScreen.Initial) }
+    var previousScreen by remember { mutableStateOf<AuthScreen?>(null) }
 
-//    AuthScreenContent(
-//        initLoginAction = loginAction,
-//        onDismiss = onDismiss,
-//        onSignIn = { eMail, password ->
-//            authViewModel.initiateSignIn(userEmail = eMail, userPassword = password)
-//        },
-//        onSignUp = { name, eMail, password ->
-//            authViewModel.initiateSignUp(name = name, userEmail = eMail, userPassword = password)
-//        },
-//        onSignUpConfirm = { eMail, confirmationCode ->
-//            authViewModel.confirmSignUp(userEmail = eMail, confirmationCode = confirmationCode)
-//        }
-//    )
+    AuthScreenPattern(
+        onBack = previousScreen?.let {
+            {
+                authScreen = it
+            }
+        }
+    ) {
+
+        when (authScreen) {
+            AuthScreen.Initial -> {
+                previousScreen = null
+                InitialScreen(
+                    eMail = eMail,
+                    onEmailChanged = { eMail = it },
+                    onForgotPasswordClicked = {
+                        previousScreen = authScreen
+                        authScreen = AuthScreen.ForgotPassword
+                    },
+                    onSignUpClicked = {
+                        previousScreen = authScreen
+                        authScreen = AuthScreen.SignUp
+                    },
+                    onSignInClicked = {
+                        previousScreen = authScreen
+                        authScreen = AuthScreen.SignIn
+                    }
+
+                )
+            }
+            AuthScreen.ForgotPassword -> TODO()
+            AuthScreen.SignIn -> SignInScreen(
+                eMail = eMail,
+                onEmailChanged = { eMail = it },
+                onSignInClicked = { eMail, passWord ->
+                    authenticatorViewModel.initiateSignIn(eMail, passWord)
+                },
+                state = authState as? AuthState.SignIn
+            )
+            AuthScreen.SignUp -> {
+                if (authState == AuthState.SignUp.CodeWasSent) {
+                    previousScreen = authScreen
+                    authScreen = AuthScreen.SignUpVerification
+                }
+                SignUpInitialScreen(
+                    eMail = eMail,
+                    onEmailChanged = { eMail = it },
+                    onSignupClicked = { userName, email, password ->
+                        authenticatorViewModel.initiateSignUp(userName, email, password)
+                    },
+                    state = authState as? AuthState.SignUp
+                )
+            }
+            AuthScreen.SignUpVerification -> {
+                if (authState == AuthState.Confirmation.CodeConfirmed) {
+                    previousScreen = authScreen
+//                authScreen = AuthScreen.SignUpVerification
+                }
+                SignUpConfirmationScreen(
+                    eMail = eMail,
+                    onConfirmClicked = { code ->
+                        authenticatorViewModel.confirmSignUp(eMail, code)
+                    },
+                    state = authState as? AuthState.Confirmation
+                )
+            }
+        }
+    }
+
 }
-
 
 sealed class AuthScreen {
     object Initial : AuthScreen()
     object SignUp : AuthScreen()
+    object SignUpVerification : AuthScreen()
     object SignIn : AuthScreen()
     object ForgotPassword : AuthScreen()
 }
@@ -163,144 +198,6 @@ fun AuthScreenPattern(
             content()
         }
     }
-}
-
-@Composable
-fun AuthScreen(
-    initLoginAction: LoginAction? = null,
-    onDismiss: () -> Unit = {},
-
-    onSignIn: (eMail: String, password: String) -> Unit = { _, _ -> },
-    onSignUp: (name: String, eMail: String, password: String) -> Unit = { _, _, _ -> },
-    onSignUpConfirm: (eMail: String, confirmationCode: String) -> Unit = { _, _ -> }
-) {
-    Surface(
-        shape = RoundedCornerShape(4f.dp),
-        modifier = Modifier
-            .fillMaxHeight()
-//            .semantics { contentDescription = dialogContentDescription }
-    ) {
-        Column(
-            modifier = Modifier
-                .wrapContentHeight()
-                .padding(8.dp)
-        ) {
-
-            var loginAction by remember(initLoginAction) {
-                mutableStateOf<LoginAction?>(
-                    initLoginAction
-                )
-            }
-
-            var userEmail by remember { mutableStateOf("") }
-
-
-
-            Icon(
-                imageVector = if (loginAction != null) Icons.Rounded.ArrowBack else Icons.Rounded.Close,
-                contentDescription = "back",
-                Modifier
-                    .padding(16.dp)
-                    .clickable {
-                        if (loginAction != null)
-                            loginAction = null
-                        else onDismiss()
-                    }
-                    .align(if (loginAction != null) Alignment.Start else Alignment.End),
-                tint = MaterialTheme.colors.onSurface
-            )
-
-
-            Icon(
-                modifier = Modifier
-                    .size(128.dp)
-                    .align(Alignment.CenterHorizontally)
-                    .padding(32.dp),
-                imageVector = Icons.Rounded.AccountBox,
-                tint = MaterialTheme.colors.onSurface,
-                contentDescription = "account_icon"
-            )
-
-            if (loginAction == null) {
-                EmailField(userEmail = userEmail, onEmailChanged = { userEmail = it })
-            }
-
-            when (val state = loginAction) {
-//                is LoginAction.SignIn -> {
-//                    SignInContent(
-//                        state = state,
-//                        eMail = userEmail,
-//                        onEmailChanged = {
-//                            userEmail = it
-//                        },
-//                        onSignIn = onSignIn
-//                    )
-//                }
-                LoginAction.ForgotPassword -> {
-                    ForgotPassword(eMail = userEmail) {
-                        userEmail = it
-                    }
-                }
-//                is LoginAction.SignUp -> SignUp(
-//                    eMail = userEmail,
-//                    onEmailChanged = {
-//                        userEmail = it
-//                    },
-//                    onSignUp = onSignUp,
-//                    onSignUpConfirm = onSignUpConfirm,
-//                    withConfirmationCode = loginAction == LoginAction.SignUp.EnterConfirmationCode
-//                )
-                null -> {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-
-                        TextButton(onClick = {
-//                            if (loginAction != LoginAction.ForgotPassword) {
-                            loginAction = LoginAction.ForgotPassword
-//                            }
-                        }) {
-                            Text(
-                                text = stringResource(id = R.string.user_auth_forgot_password),
-                                color = MaterialTheme.colors.primaryVariant.copy(alpha = 0.5f)
-                            )
-                        }
-
-
-                        TextButton(onClick = {
-//                            if (loginAction !is LoginAction.SignUp) {
-//                            loginAction = LoginAction.SignUp.InitiateSignUp
-//                            }
-                        }) {
-                            Text(
-                                text = stringResource(id = R.string.user_auth_sign_up),
-                                color = MaterialTheme.colors.primaryVariant
-                            )
-                        }
-
-
-                        Button(onClick = {
-//                            if (loginAction != LoginAction.SignIn) {
-//                            loginAction = LoginAction.SignIn.InitiateSignIn
-//                            }
-                        }) {
-                            Text(text = stringResource(id = R.string.user_auth_sign_in))
-                        }
-                    }
-                }
-            }
-
-
-        }
-    }
-}
-
-@Composable
-private fun ForgotPassword(eMail: String, onEmailChanged: (String) -> Unit) {
-
 }
 
 
@@ -464,44 +361,3 @@ internal fun BaseAuthField(
     }
 }
 
-
-sealed class LoginAction {
-    /**
-     * Sign in screen
-     */
-
-
-    object ForgotPassword : LoginAction()
-}
-
-sealed class AuthResult {
-    object Success : AuthResult()
-    data class Failure(val error: Throwable?) : AuthResult()
-}
-
-@Preview(group = "auth_light")
-@Composable
-fun InitialAuthScreenTestLight() {
-    AuthScreen(null)
-}
-
-
-@Preview(group = "auth_light")
-@Composable
-fun ForgotPasswordTestLight() {
-    AuthScreen(LoginAction.ForgotPassword)
-}
-
-
-@Preview(group = "auth_dark")
-@Composable
-fun InitialAuthScreenTestDark() {
-    AuthScreen(null)
-}
-
-
-@Preview(group = "auth_dark")
-@Composable
-fun ForgotPasswordTestDark() {
-    AuthScreen(LoginAction.ForgotPassword)
-}

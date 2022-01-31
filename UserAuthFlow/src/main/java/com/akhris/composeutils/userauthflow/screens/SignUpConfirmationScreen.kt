@@ -18,24 +18,28 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.akhris.composeutils.userauthflow.R
+import com.akhris.composeutils.userauthflow.auth.AuthState
 import com.akhris.composeutils.userauthflow.auth.BaseAuthField
-import com.akhris.composeutils.userauthflow.auth.SignUpResult
+import timber.log.Timber
 
 @Composable
-private fun SignUpConfirmationScreen(
+internal fun SignUpConfirmationScreen(
     eMail: String = "",
-    confirmationCode: String = "",
-    onConfirmationCodeChanged: ((String) -> Unit)? = null,
-    onConfirmClicked: (() -> Unit)? = null,
-    error: SignUpResult.Failure? = null
+    initConfirmationCode: String = "",
+    onConfirmClicked: ((String) -> Unit)? = null,
+    state: AuthState.Confirmation? = null
 ) {
+
+    Timber.d("state: $state")
+    var confirmationCode by remember { mutableStateOf(initConfirmationCode) }
+
     Column {
 
         Text(
@@ -45,26 +49,26 @@ private fun SignUpConfirmationScreen(
 
         BaseAuthField(
             text = confirmationCode,
-            onTextChanged = onConfirmationCodeChanged,
+            onTextChanged = { confirmationCode = it },
             withClearIcon = true,
             hintID = R.string.user_auth_confirmation_code_hint,
-            errorID = when (error) {
-                SignUpResult.Failure.CodeExpired -> R.string.user_auth_sign_up_error_code_expired
-                SignUpResult.Failure.CodeMismatch -> R.string.user_auth_sign_up_error_code_mismatch
-                SignUpResult.Failure.ConfirmationCodeDeliveryFailure -> R.string.user_auth_sign_up_error_code_delivery
+            errorID = when (state) {
+                AuthState.Confirmation.Failure.CodeExpired -> R.string.user_auth_sign_up_error_code_expired
+                AuthState.Confirmation.Failure.CodeMismatch -> R.string.user_auth_sign_up_error_code_mismatch
+                AuthState.Confirmation.Failure.ConfirmationCodeDeliveryFailure -> R.string.user_auth_sign_up_error_code_delivery
                 else -> null
             },
             textValidate = {
-                error !in listOf(
-                    SignUpResult.Failure.CodeExpired,
-                    SignUpResult.Failure.CodeMismatch,
-                    SignUpResult.Failure.ConfirmationCodeDeliveryFailure
+                state !in listOf(
+                    AuthState.Confirmation.Failure.CodeExpired,
+                    AuthState.Confirmation.Failure.CodeMismatch,
+                    AuthState.Confirmation.Failure.ConfirmationCodeDeliveryFailure
                 )
             }
         )
         Button(modifier = Modifier
             .align(Alignment.End)
-            .padding(vertical = 8.dp), onClick = { onConfirmClicked?.invoke() }
+            .padding(vertical = 8.dp), onClick = { onConfirmClicked?.invoke(confirmationCode) }
         ) {
             Text(text = stringResource(id = R.string.user_auth_confirm_code))
         }
@@ -72,7 +76,7 @@ private fun SignUpConfirmationScreen(
 }
 
 
-@Preview(name = "sign up confirmation screen", group = "sign up")
+@Preview
 @Composable
 fun SignUpConfirmationScreenTest() {
     SignUpConfirmationScreen()

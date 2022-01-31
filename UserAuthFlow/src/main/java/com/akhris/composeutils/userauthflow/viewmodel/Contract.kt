@@ -14,11 +14,10 @@
 package com.akhris.composeutils.userauthflow.viewmodel
 
 import androidx.lifecycle.LiveData
-import com.akhris.composeutils.userauthflow.auth.AuthStage
-import com.akhris.composeutils.userauthflow.auth.SignUpResult
+import com.akhris.composeutils.userauthflow.auth.AuthState
 
 interface IAuthenticatorViewModel {
-    val signStatus: LiveData<SignStatus?>
+    val signStatus: LiveData<AuthState?>
     fun initiateSignUp(name: String, userEmail: String, userPassword: String)
     fun confirmSignUp(userEmail: String, confirmationCode: String)
     fun initiateSignIn(userEmail: String, userPassword: String)
@@ -26,37 +25,4 @@ interface IAuthenticatorViewModel {
     fun confirmPasswordChange(newPassword: String, confirmationCode: String)
     fun signOut()
     fun updateCurrentSignStatus()
-}
-
-interface IAuthViewModel {
-    val stage: LiveData<AuthStage>
-    fun initiateSignUp(name: String, userEmail: String, userPassword: String)
-    fun confirmSignUp(userEmail: String, confirmationCode: String)
-    fun initiateSignIn(userEmail: String, userPassword: String)
-    fun initiateForgotPassword(userEmail: String)
-    fun confirmPasswordChange(newPassword: String, confirmationCode: String)
-    fun signOut()
-    fun updateCurrentSignStatus()
-}
-
-interface ISignUpViewModel {
-    val signupStatus: LiveData<SignUpResult?>
-    fun initiateSignUp(name: String, userEmail: String, userPassword: String)
-    fun confirmSignUp(userEmail: String, confirmationCode: String)
-}
-
-sealed class SignStatus {
-    object SignedIn : SignStatus()
-    object SignedOut : SignStatus()
-
-    sealed class SignUp : SignStatus() {
-        object ConfirmationCodeWasSent : SignUp()
-        object SignUpConfirmed : SignUp()
-    }
-
-    object SigningInProgress : SignStatus()
-    object SigningOutInProgress : SignStatus()
-
-    object PasswordChanged : SignStatus()
-    data class Error(val error: Exception) : SignStatus()
 }

@@ -28,11 +28,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.akhris.composeutils.swipetoreveal.*
 import com.akhris.composeutils.ui.theme.ComposeUtilsTheme
-import com.akhris.composeutils.userauthflow.auth.AuthScreen
 import com.akhris.composeutils.userauthflow.auth.AuthScreenContent
 
 @ExperimentalMaterialApi
@@ -224,18 +222,5 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun AuthFlow(){
-//    AuthScreenContent()
-}
-
-@Composable
-fun Greeting(name: String) {
-    Text(text = "Hello $name!")
-}
-
-@Preview(showBackground = true)
-@Composable
-fun DefaultPreview() {
-    ComposeUtilsTheme {
-        Greeting("Android")
-    }
+    AuthScreenContent()
 }
