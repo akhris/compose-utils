@@ -22,23 +22,23 @@ import com.akhris.composeutils.userauthflow.universal.buttons.Button
 import com.akhris.composeutils.userauthflow.universal.buttons.ButtonType
 
 @Composable
-fun RenderButton(button: Button) {
+fun RenderButton(button: Button, onClick: ((buttonID: String) -> Unit)? = null) {
     when (button.type) {
-        ButtonType.Primary -> RenderPrimaryButton(button = button)
-        ButtonType.Text -> RenderTextButton(button = button)
+        ButtonType.Primary -> RenderPrimaryButton(button = button, onClick = onClick)
+        ButtonType.Text -> RenderTextButton(button = button, onClick = onClick)
     }
 }
 
 @Composable
-private fun RenderPrimaryButton(button: Button) {
-    Button(onClick = { }) {
+private fun RenderPrimaryButton(button: Button, onClick: ((buttonID: String) -> Unit)? = null) {
+    Button(onClick = { onClick?.invoke(button.id) }) {
         Text(text = stringResource(id = button.textRes))
     }
 }
 
 @Composable
-private fun RenderTextButton(button: Button) {
-    TextButton(onClick = { }) {
+private fun RenderTextButton(button: Button, onClick: ((buttonID: String) -> Unit)? = null) {
+    TextButton(onClick = { onClick?.invoke(button.id) }) {
         Text(text = stringResource(id = button.textRes))
     }
 }

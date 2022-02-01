@@ -19,7 +19,7 @@ import com.akhris.composeutils.userauthflow.universal.fields.TextField
 import com.akhris.composeutils.userauthflow.universal.screens.Screen
 
 interface IFactory<T : IEntity> {
-    fun getEntity(id: String): T
+    fun getEntity(id: String?): T?
 }
 
 typealias ScreenFactory = IFactory<Screen>

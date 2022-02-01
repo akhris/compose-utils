@@ -13,9 +13,13 @@
 
 package com.akhris.composeutils.userauthflow.universal.events
 
-sealed class Event(screenID: String) {
+sealed class Event(val screenID: String) {
     class ButtonClickedEvent(val buttonID: String, screenID: String) : Event(screenID = screenID)
-    class TextValidationEvent(val textFieldID: String, screenID: String) :
+
+    class TextValidationEvent(val textFieldID: String, screenID: String, val isValid: Boolean) :
         Event(screenID = screenID)
+
+    class NavigationEvent(sourceScreenID: String, val destScreenID: String) :
+        Event(screenID = sourceScreenID)
 }
 

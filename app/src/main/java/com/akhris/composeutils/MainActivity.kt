@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.akhris.composeutils.swipetoreveal.*
 import com.akhris.composeutils.ui.theme.ComposeUtilsTheme
 import com.akhris.composeutils.userauthflow.auth.AuthScreenContent
+import com.akhris.composeutils.userauthflow.universal.RenderScreen
 
 @ExperimentalMaterialApi
 class MainActivity : ComponentActivity() {
@@ -44,7 +45,8 @@ class MainActivity : ComponentActivity() {
                     Tabs { index ->
                         when (index) {
                             0->TestList()
-                            1->AuthFlow()
+                            1 -> AuthFlow()
+                            2 -> RenderScreen()
                         }
                     }
                 }
@@ -59,7 +61,8 @@ class MainActivity : ComponentActivity() {
         var tabIndex by remember { mutableStateOf(0) }
         val tabTitles = listOf(
             R.string.tab_title_swipe_to_reveal,
-            R.string.tab_title_auth_flow
+            R.string.tab_title_auth_flow,
+            R.string.auth_universal
         )
         Column {
             TabRow(selectedTabIndex = tabIndex) {

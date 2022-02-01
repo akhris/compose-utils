@@ -19,6 +19,7 @@ import com.akhris.composeutils.userauthflow.universal.entities.IEntity
 class Screen(
     override val id: String,
     @StringRes val titleRes: Int,
-    val textFieldsIDs: List<String>,
-    val buttonsIDs: List<String>
+    val textFieldsIDs: List<String> = listOf(),
+    val buttonsIDs: List<String> = listOf()
 ) : IEntity
+

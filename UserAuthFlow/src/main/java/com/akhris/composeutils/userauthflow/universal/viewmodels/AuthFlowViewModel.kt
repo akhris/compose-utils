@@ -20,9 +20,14 @@ import androidx.lifecycle.viewModelScope
 import com.akhris.composeutils.userauthflow.universal.events.Event
 import com.akhris.composeutils.userauthflow.universal.events.EventResult
 import com.akhris.composeutils.userauthflow.universal.events.IEventHandler
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 
 class AuthFlowViewModel(private val eventHandler: IEventHandler) : ViewModel() {
+
+    private val _eventFlow: MutableSharedFlow<EventResult> = MutableSharedFlow()
+    val eventFlow: SharedFlow<EventResult> = _eventFlow
 
     private val _eventResults: MutableLiveData<EventResult> = MutableLiveData()
 
