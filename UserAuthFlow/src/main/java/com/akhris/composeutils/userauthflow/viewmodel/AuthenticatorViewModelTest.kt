@@ -32,13 +32,17 @@ class AuthenticatorViewModelTest : ViewModel(), IAuthenticatorViewModel {
 
 
     override fun initiateSignUp(name: String, userEmail: String, userPassword: String) {
-        val error = false
+        val error = true
+        val errorType = Random.nextInt(2)
         viewModelScope.launch {
-
+            _signStatus.value = AuthState.SignUp.SignUpInProgress
             Timber.d("initiateSignUp. Wait for 2s")
             delay(2000)
             _signStatus.value = if (error) {
-                AuthState.SignUp.Failure.UserEmailExists
+                when (errorType) {
+                    0 -> AuthState.SignUp.Failure.UserEmailExists
+                    else -> AuthState.SignUp.Failure.UsernameExists
+                }
             } else {
                 Timber.d("sending test confirmation code...")
                 AuthState.SignUp.CodeWasSent

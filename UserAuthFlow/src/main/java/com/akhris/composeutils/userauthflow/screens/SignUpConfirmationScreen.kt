@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import com.akhris.composeutils.userauthflow.R
 import com.akhris.composeutils.userauthflow.auth.AuthState
 import com.akhris.composeutils.userauthflow.auth.BaseAuthField
-import timber.log.Timber
 
 @Composable
 internal fun SignUpConfirmationScreen(
@@ -37,7 +36,7 @@ internal fun SignUpConfirmationScreen(
     state: AuthState.Confirmation? = null
 ) {
 
-    Timber.d("state: $state")
+
     var confirmationCode by remember { mutableStateOf(initConfirmationCode) }
 
     Column {
@@ -58,7 +57,7 @@ internal fun SignUpConfirmationScreen(
                 AuthState.Confirmation.Failure.ConfirmationCodeDeliveryFailure -> R.string.user_auth_sign_up_error_code_delivery
                 else -> null
             },
-            isError = state in listOf(
+            isValid = state !in listOf(
                 AuthState.Confirmation.Failure.CodeExpired,
                 AuthState.Confirmation.Failure.CodeMismatch,
                 AuthState.Confirmation.Failure.ConfirmationCodeDeliveryFailure

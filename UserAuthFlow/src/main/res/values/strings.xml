@@ -36,4 +36,8 @@
     <string name="user_auth_sign_up_error_user_name_exists">User with this username exists</string>
     <string name="user_auth_fill_in_confirmation_code_sent_to">confirmation code was sent to %s</string>
     <string name="user_auth_empty_password_error">password must not be empty</string>
+    <string name="user_auth_sign_up_error_empty_user_name">user name should not be empty</string>
+    <string name="user_auth_sign_up_error_user_email_exists">User with this e-mail exists</string>
+    <string name="user_auth_forgot_password_send_code">send code</string>
+    <string name="user_auth_title">User authorization</string>
 </resources>

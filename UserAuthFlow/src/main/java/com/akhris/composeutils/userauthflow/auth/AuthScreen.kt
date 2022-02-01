@@ -270,7 +270,7 @@ internal fun EmailField(
         withClearIcon = true,
         hintID = R.string.user_auth_email_hint,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-        isError = !isEmailValid,
+        isValid = isEmailValid,
         errorID = errorRes
     )
 //    TextField(
@@ -306,7 +306,7 @@ internal fun BaseAuthField(
     @StringRes errorID: Int? = null,
     withClearIcon: Boolean,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    isError: Boolean = false
+    isValid: Boolean = true
 ) {
 
     Column {
@@ -319,7 +319,7 @@ internal fun BaseAuthField(
 //                    .testTag(textTestTag)
             ,
             value = text,
-            isError = isError,
+            isError = !isValid,
             onValueChange = {
                 onTextChanged?.invoke(it)
             },
@@ -337,7 +337,7 @@ internal fun BaseAuthField(
             } else null, keyboardOptions = keyboardOptions
         )
 
-        if (isError && errorID != null) {
+        if (!isValid && errorID != null) {
             Text(
                 text = stringResource(id = errorID),
                 color = MaterialTheme.colors.error,

@@ -17,6 +17,7 @@ sealed class AuthState {
     object SignedIn : AuthState()
     object SignedOut : AuthState()
     sealed class SignUp : AuthState() {
+        object SignUpInProgress : SignUp()
         object CodeWasSent : SignUp()
         sealed class Failure : SignUp() {
             object UsernameExists : Failure()
@@ -41,6 +42,14 @@ sealed class AuthState {
             object EMailNotExists : Failure()
             object InvalidPassword : Failure()
             class Other(exception: Exception) : SignIn.Failure()
+        }
+    }
+
+    sealed class ForgotPassword : AuthState() {
+        object SendingCodeInProgress : ForgotPassword()
+        object CodeSent : ForgotPassword()
+        sealed class Failure : ForgotPassword() {
+            object EMailNotExists : Failure()
         }
     }
 }

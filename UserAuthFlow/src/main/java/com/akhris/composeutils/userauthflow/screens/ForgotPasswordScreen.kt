@@ -21,38 +21,27 @@ import androidx.compose.ui.Modifier
 import com.akhris.composeutils.userauthflow.R
 import com.akhris.composeutils.userauthflow.auth.AuthState
 import com.akhris.composeutils.userauthflow.auth.EmailField
-import com.akhris.composeutils.userauthflow.auth.PasswordField
 import com.akhris.composeutils.userauthflow.composables.ProgressButton
 import com.akhris.composeutils.userauthflow.utils.isValidEmail
 
 @Composable
-fun SignInScreen(
+fun ForgotPasswordScreen(
     eMail: String = "",
-    onEmailChanged: (String) -> Unit,
-    onSignInClicked: ((eMail: String, passWord: String) -> Unit)? = null,
-    state: AuthState.SignIn? = null
+    onEmailChanged: ((String) -> Unit)? = null,
+    onRestorePasswordClicked: ((eMail: String) -> Unit)? = null,
+    state: AuthState.ForgotPassword? = null
 ) {
 
-    var userPassword by remember { mutableStateOf("") }
     var errorChecksEnabled by remember { mutableStateOf(false) }
-
 
     var isEmailValid by remember(eMail) {
         mutableStateOf(eMail.isValidEmail())
     }
 
-    var isPasswordValid by remember(userPassword) {
-        mutableStateOf(userPassword.isNotEmpty())
-    }
-
-
     LaunchedEffect(key1 = state) {
         when (state) {
-            AuthState.SignIn.Failure.EMailNotExists -> {
+            AuthState.ForgotPassword.Failure.EMailNotExists -> {
                 isEmailValid = false
-            }
-            AuthState.SignIn.Failure.InvalidPassword -> {
-                isPasswordValid = false
             }
             else -> {
                 //do nothing
@@ -64,44 +53,26 @@ fun SignInScreen(
         //email field
         EmailField(
             userEmail = eMail,
-            onEmailChanged = {
-                onEmailChanged.invoke(it)
-            },
+            onEmailChanged = { onEmailChanged?.invoke(it) },
             isEmailValid = if (errorChecksEnabled) isEmailValid else true,
             errorRes = when (state) {
-                AuthState.SignIn.Failure.EMailNotExists -> R.string.user_auth_email_not_found
+                AuthState.ForgotPassword.Failure.EMailNotExists -> R.string.user_auth_email_not_found
                 else -> R.string.user_auth_wrong_email
             }
         )
 
-        //password field
-        PasswordField(
-            userPassword = userPassword,
-            onPasswordChanged = {
-                userPassword = it
-            },
-            isPasswordValid = if (errorChecksEnabled) isPasswordValid else true,
-            errorRes = when {
-                state == AuthState.SignIn.Failure.InvalidPassword ->
-                    R.string.user_auth_invalid_password
-                userPassword.isEmpty() -> R.string.user_auth_empty_password_error
-                else -> R.string.user_auth_password_error
-            },
-            withVisibilityToggle = true
-        )
-
-        //sign in button
+        //send code button
         Box(modifier = Modifier.align(Alignment.End)) {
             ProgressButton(
-                isProgress = state == AuthState.SignIn.SignInInProgress,
-                isEnabled = !errorChecksEnabled || (isEmailValid && isPasswordValid),
+                isProgress = state == AuthState.ForgotPassword.SendingCodeInProgress,
+                isEnabled = !errorChecksEnabled || isEmailValid,
                 onClick = {
                     if (!errorChecksEnabled) {
                         errorChecksEnabled = true
                     }
-                    if (isPasswordValid && isEmailValid)
-                        onSignInClicked?.invoke(eMail, userPassword)
-                }, buttonTextRes = R.string.user_auth_sign_in
+                    if (isEmailValid)
+                        onRestorePasswordClicked?.invoke(eMail)
+                }, buttonTextRes = R.string.user_auth_forgot_password_send_code
             )
         }
     }
