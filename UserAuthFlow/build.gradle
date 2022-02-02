@@ -66,15 +66,15 @@ afterEvaluate {
                 artifactId = 'userauthflow'
                 version = version_name
             }
-            // Creates a Maven publication called “debug”.
-            debug(MavenPublication) {
-                // Applies the component for the debug build variant.
-                from components.debug
-
-                groupId = 'com.github.akhris.composeutils'
-                artifactId = 'userauthflow-debug'
-                version = version_name
-            }
+//            // Creates a Maven publication called “debug”.
+//            debug(MavenPublication) {
+//                // Applies the component for the debug build variant.
+//                from components.debug
+//
+//                groupId = 'com.github.akhris.composeutils'
+//                artifactId = 'userauthflow-debug'
+//                version = version_name
+//            }
         }
     }
 }
