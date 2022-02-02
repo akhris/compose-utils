@@ -28,7 +28,7 @@ import com.akhris.composeutils.userauthflow.universal.viewmodels.AuthFlowViewMod
 
 
 @Composable
-fun MainRender(viewModel: AuthFlowViewModel) {
+private fun MainRender(viewModel: AuthFlowViewModel) {
     val eventResult by remember(viewModel) { viewModel.eventResults }.observeAsState()
 
     val eventFlowResult by remember(viewModel) { viewModel.eventFlow }.collectAsState(initial = null)
@@ -41,7 +41,7 @@ fun MainRender(viewModel: AuthFlowViewModel) {
 
 @Composable
 fun RenderScreen(
-    screenID: String,
+    screenID: String = DefaultIDs.Screens.main,
     incomeEvent: Event? = null,
     outcomeEvent: ((Event) -> Unit)? = null,
     screenFactory: ScreenFactory = DefaultScreenFactory(),
