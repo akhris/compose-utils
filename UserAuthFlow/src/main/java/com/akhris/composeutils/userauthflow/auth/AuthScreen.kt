@@ -39,16 +39,16 @@ import com.akhris.composeutils.userauthflow.screens.SignInScreen
 import com.akhris.composeutils.userauthflow.screens.SignUpConfirmationScreen
 import com.akhris.composeutils.userauthflow.screens.SignUpInitialScreen
 import com.akhris.composeutils.userauthflow.viewmodel.AuthenticatorViewModelTest
-import com.akhris.composeutils.userauthflow.viewmodel.IAuthenticatorViewModel
+import com.akhris.composeutils.userauthflow.viewmodel.IAuthenticator
 
 @Composable
 fun AuthScreenContent(
-    authenticatorViewModel: IAuthenticatorViewModel = AuthenticatorViewModelTest(),
+    authenticator: IAuthenticator = AuthenticatorViewModelTest(),
     onDismiss: (() -> Unit)? = null
 ) {
 
-    val authState by remember(authenticatorViewModel) {
-        authenticatorViewModel.signStatus
+    val authState by remember(authenticator) {
+        authenticator.signStatus
     }.observeAsState()
 
     var eMail by remember { mutableStateOf("") }
@@ -98,7 +98,7 @@ fun AuthScreenContent(
                 eMail = eMail,
                 onEmailChanged = { eMail = it },
                 onSignInClicked = { eMail, passWord ->
-                    authenticatorViewModel.initiateSignIn(eMail, passWord)
+                    authenticator.initiateSignIn(eMail, passWord)
                 },
                 state = authState as? AuthState.SignIn
             )
@@ -111,7 +111,7 @@ fun AuthScreenContent(
                     eMail = eMail,
                     onEmailChanged = { eMail = it },
                     onSignupClicked = { userName, email, password ->
-                        authenticatorViewModel.initiateSignUp(userName, email, password)
+                        authenticator.initiateSignUp(userName, email, password)
                     },
                     state = authState as? AuthState.SignUp
                 )
@@ -124,7 +124,7 @@ fun AuthScreenContent(
                 SignUpConfirmationScreen(
                     eMail = eMail,
                     onConfirmClicked = { code ->
-                        authenticatorViewModel.confirmSignUp(eMail, code)
+                        authenticator.confirmSignUp(eMail, code)
                     },
                     state = authState as? AuthState.Confirmation
                 )

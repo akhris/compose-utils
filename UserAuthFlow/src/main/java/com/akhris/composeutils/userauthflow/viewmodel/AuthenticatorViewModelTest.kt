@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import kotlin.random.Random
 
-class AuthenticatorViewModelTest : ViewModel(), IAuthenticatorViewModel {
+class AuthenticatorViewModelTest : ViewModel(), IAuthenticator {
 
 
     private val _signStatus: MutableLiveData<AuthState?> = MutableLiveData(null)

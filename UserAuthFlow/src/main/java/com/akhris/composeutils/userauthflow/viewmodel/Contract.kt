@@ -16,7 +16,7 @@ package com.akhris.composeutils.userauthflow.viewmodel
 import androidx.lifecycle.LiveData
 import com.akhris.composeutils.userauthflow.auth.AuthState
 
-interface IAuthenticatorViewModel {
+interface IAuthenticator {
     val signStatus: LiveData<AuthState?>
     fun initiateSignUp(name: String, userEmail: String, userPassword: String)
     fun confirmSignUp(userEmail: String, confirmationCode: String)
