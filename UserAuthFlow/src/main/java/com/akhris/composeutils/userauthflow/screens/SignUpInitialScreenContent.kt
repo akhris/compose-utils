@@ -15,6 +15,7 @@ package com.akhris.composeutils.userauthflow.screens
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,7 +38,7 @@ import com.akhris.composeutils.userauthflow.utils.isValidEmail
  * and button "sign up"
  */
 @Composable
-internal fun SignUpInitialScreen(
+fun SignUpInitialScreenContent(
     eMail: String = "",
     onEmailChanged: ((String) -> Unit)? = null,
     onSignupClicked: ((username: String, email: String, password: String) -> Unit)? = null,
@@ -81,8 +82,7 @@ internal fun SignUpInitialScreen(
 
 
 
-    Column {
-        //user name field
+    Column(modifier = Modifier.wrapContentHeight()) {        //user name field
         BaseAuthField(
             text = userName,
             onTextChanged = { userName = it },
@@ -146,5 +146,5 @@ internal fun SignUpInitialScreen(
 @Preview(name = "sign up initial screen", group = "sign up")
 @Composable
 fun SignUpInitialTest() {
-    SignUpInitialScreen()
+    SignUpInitialScreenContent()
 }

@@ -13,10 +13,7 @@
 
 package com.akhris.composeutils.userauthflow.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
@@ -27,7 +24,7 @@ import com.akhris.composeutils.userauthflow.R
 import com.akhris.composeutils.userauthflow.auth.EmailField
 
 @Composable
-internal fun InitialScreen(
+fun AuthInitialScreenContent(
     eMail: String = "",
     onEmailChanged: ((String) -> Unit)? = null,
     onForgotPasswordClicked: (() -> Unit)? = null,
@@ -35,7 +32,7 @@ internal fun InitialScreen(
     onSignInClicked: (() -> Unit)? = null
 ) {
 
-    Column {
+    Column(modifier = Modifier.wrapContentHeight()) {
         //email field
         EmailField(
             userEmail = eMail,

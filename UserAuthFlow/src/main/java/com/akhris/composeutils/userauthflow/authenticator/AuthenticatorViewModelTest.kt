@@ -11,7 +11,7 @@
  * limitations under the License.
  */
 
-package com.akhris.composeutils.userauthflow.viewmodel
+package com.akhris.composeutils.userauthflow.authenticator
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData

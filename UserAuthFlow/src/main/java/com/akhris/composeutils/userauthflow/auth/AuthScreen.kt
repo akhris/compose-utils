@@ -34,12 +34,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.akhris.composeutils.userauthflow.R
-import com.akhris.composeutils.userauthflow.screens.InitialScreen
-import com.akhris.composeutils.userauthflow.screens.SignInScreen
-import com.akhris.composeutils.userauthflow.screens.SignUpConfirmationScreen
-import com.akhris.composeutils.userauthflow.screens.SignUpInitialScreen
-import com.akhris.composeutils.userauthflow.viewmodel.AuthenticatorViewModelTest
-import com.akhris.composeutils.userauthflow.viewmodel.IAuthenticator
+import com.akhris.composeutils.userauthflow.authenticator.AuthenticatorViewModelTest
+import com.akhris.composeutils.userauthflow.authenticator.IAuthenticator
+import com.akhris.composeutils.userauthflow.screens.AuthInitialScreenContent
+import com.akhris.composeutils.userauthflow.screens.SignInScreenContent
+import com.akhris.composeutils.userauthflow.screens.SignUpConfirmationScreenContent
+import com.akhris.composeutils.userauthflow.screens.SignUpInitialScreenContent
 
 @Composable
 fun AuthScreenContent(
@@ -75,7 +75,7 @@ fun AuthScreenContent(
         when (authScreen) {
             AuthScreen.Initial -> {
                 previousScreen = null
-                InitialScreen(
+                AuthInitialScreenContent(
                     eMail = eMail,
                     onEmailChanged = { eMail = it },
                     onForgotPasswordClicked = {
@@ -94,7 +94,7 @@ fun AuthScreenContent(
                 )
             }
             AuthScreen.ForgotPassword -> TODO()
-            AuthScreen.SignIn -> SignInScreen(
+            AuthScreen.SignIn -> SignInScreenContent(
                 eMail = eMail,
                 onEmailChanged = { eMail = it },
                 onSignInClicked = { eMail, passWord ->
@@ -107,7 +107,7 @@ fun AuthScreenContent(
                     previousScreen = authScreen
                     authScreen = AuthScreen.SignUpVerification
                 }
-                SignUpInitialScreen(
+                SignUpInitialScreenContent(
                     eMail = eMail,
                     onEmailChanged = { eMail = it },
                     onSignupClicked = { userName, email, password ->
@@ -121,7 +121,7 @@ fun AuthScreenContent(
                     previousScreen = authScreen
 //                authScreen = AuthScreen.SignUpVerification
                 }
-                SignUpConfirmationScreen(
+                SignUpConfirmationScreenContent(
                     eMail = eMail,
                     onConfirmClicked = { code ->
                         authenticator.confirmSignUp(eMail, code)
@@ -147,11 +147,11 @@ fun AuthScreenPattern(
     onBack: (() -> Unit)? = null,
     onDismiss: (() -> Unit)? = null,
     @StringRes titleRes: Int? = null,
-    content: @Composable () -> Unit
+    content: @Composable ColumnScope.() -> Unit
 ) {
     Surface(
         shape = RoundedCornerShape(4f.dp),
-        modifier = Modifier
+        modifier = Modifier.wrapContentHeight()
 //            .semantics { contentDescription = dialogContentDescription }
     ) {
         Column(
@@ -184,10 +184,6 @@ fun AuthScreenPattern(
                             .padding(8.dp),
                         text = stringResource(id = it),
                         style = MaterialTheme.typography.h4
-//                            textAlign = when (LocalLayoutDirection.current) {
-//                                LayoutDirection.Ltr -> TextAlign.Start
-//                                LayoutDirection.Rtl -> TextAlign.End
-//                            }
                     )
                 }
             }
@@ -309,11 +305,11 @@ internal fun BaseAuthField(
     isValid: Boolean = true
 ) {
 
-    Column {
-
+    Column(modifier = Modifier.wrapContentHeight()) {
         TextField(
             modifier = Modifier
                 .fillMaxWidth()
+                .wrapContentHeight()
                 .padding(vertical = 8.dp)
 
 //                    .testTag(textTestTag)

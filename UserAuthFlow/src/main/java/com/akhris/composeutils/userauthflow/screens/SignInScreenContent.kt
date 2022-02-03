@@ -15,6 +15,7 @@ package com.akhris.composeutils.userauthflow.screens
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,7 +27,7 @@ import com.akhris.composeutils.userauthflow.composables.ProgressButton
 import com.akhris.composeutils.userauthflow.utils.isValidEmail
 
 @Composable
-fun SignInScreen(
+fun SignInScreenContent(
     eMail: String = "",
     onEmailChanged: (String) -> Unit,
     onSignInClicked: ((eMail: String, passWord: String) -> Unit)? = null,
@@ -60,7 +61,7 @@ fun SignInScreen(
         }
     }
 
-    Column {
+    Column(modifier = Modifier.wrapContentHeight()) {
         //email field
         EmailField(
             userEmail = eMail,

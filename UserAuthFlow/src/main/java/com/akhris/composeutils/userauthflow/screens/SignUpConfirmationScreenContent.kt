@@ -15,6 +15,7 @@ package com.akhris.composeutils.userauthflow.screens
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -29,18 +30,17 @@ import com.akhris.composeutils.userauthflow.auth.AuthState
 import com.akhris.composeutils.userauthflow.auth.BaseAuthField
 
 @Composable
-internal fun SignUpConfirmationScreen(
+fun SignUpConfirmationScreenContent(
     eMail: String = "",
     initConfirmationCode: String = "",
-    onConfirmClicked: ((String) -> Unit)? = null,
+    onConfirmClicked: ((code: String) -> Unit)? = null,
     state: AuthState.Confirmation? = null
 ) {
 
 
     var confirmationCode by remember { mutableStateOf(initConfirmationCode) }
 
-    Column {
-
+    Column(modifier = Modifier.wrapContentHeight()) {
         Text(
             text = stringResource(R.string.user_auth_fill_in_confirmation_code_sent_to, eMail),
             style = MaterialTheme.typography.body2
@@ -77,5 +77,5 @@ internal fun SignUpConfirmationScreen(
 @Preview
 @Composable
 fun SignUpConfirmationScreenTest() {
-    SignUpConfirmationScreen()
+    SignUpConfirmationScreenContent()
 }
